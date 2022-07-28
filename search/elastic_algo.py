@@ -3,7 +3,7 @@ from datetime import datetime
 from elasticsearch_dsl import Document, Date, Nested, Boolean
 from elasticsearch_dsl import analyzer, Completion, Keyword, Text
 from elasticsearch import Elasticsearch
-from searcher.config import USER, ELASTIC_PASSWORD, PATH_TO_CRT, ELASTIC_URL
+from search.config import USER, ELASTIC_PASSWORD, PATH_TO_CRT, ELASTIC_URL
 
 
 client = Elasticsearch(

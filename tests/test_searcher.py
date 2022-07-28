@@ -1,7 +1,5 @@
 import unittest
-from searcher.elastic_algo import client
-
-# print("tests was ran")
+from search.elastic_algo import client
 
 
 class TestElasticConnection(unittest.TestCase):
