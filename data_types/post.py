@@ -18,3 +18,6 @@ class Post:
 
     def get_values(self) -> list[Value]:
         return self.values
+
+    def get_id(self) -> str:
+        return self.id
