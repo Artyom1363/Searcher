@@ -1,5 +1,5 @@
 import unittest
-from search.elastic_algo import ElasticSearcher
+from search.elastic_searcher import ElasticSearcher
 from search.config import USER, ELASTIC_PASSWORD, PATH_TO_CRT, ELASTIC_URL
 
 from data_types.values import Sentence
@@ -26,6 +26,10 @@ class TestElasticAlgo(unittest.TestCase):
         )
         self.index_topic = "test_topics"
         self.index_comments = "test_comments"
+
+        # delete indexes
+        self.client.indices.delete(index=self.index_topic, ignore=[400, 404])
+        self.client.indices.delete(index=self.index_comments, ignore=[400, 404])
 
     def test_connection_to_server(self):
         self.assertTrue(type(self.client.info()) is dict)
@@ -60,6 +64,22 @@ class TestElasticAlgo(unittest.TestCase):
         self.assertEqual(len(response_topics), 0)
         self.assertEqual(len(response_comments), 0)
 
+    def test_adding_without_comments(self):
+        pass
+
+    def test_getting_relevant(self):
+        sentence1 = Sentence(sentence="Ответ к тесту")
+        post = Post(key="тесты по физике", values=[sentence1])
+
+        # adding data
+        ElasticSearcher.add_record(post, index_topic=self.index_topic, index_comments=self.index_comments)
+
+        time.sleep(1)
+        relevant = ElasticSearcher.get_relevant_topics(message='физике тесты', using=self.client, index_topics=self.index_topic)
+        self.assertEqual(relevant[0][0], "тесты по физике")
+        self.assertNotEqual(relevant[0][1], "")
+
+    def tearDown(self) -> None:
         # delete indexes
         self.client.indices.delete(index=self.index_topic, ignore=[400, 404])
         self.client.indices.delete(index=self.index_comments, ignore=[400, 404])
