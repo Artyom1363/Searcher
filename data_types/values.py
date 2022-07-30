@@ -14,8 +14,10 @@ class Value:
 
 
 class Sentence(Value):
-    def __init__(self, sentence: str = None):
+    def __init__(self, sentence: str = None, id_: str = None, type_: str = None, **kwargs) -> None:
         self.sentence = sentence
+        self.id = id_
+        self.type = type_
 
     def get_type(self) -> str:
         return 'Sentence'

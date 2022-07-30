@@ -1,4 +1,3 @@
-
 from datetime import datetime
 
 import elasticsearch_dsl
@@ -12,12 +11,57 @@ from search.searcher import Searcher
 from data_types.values import Value, Sentence
 from data_types.post import Post
 
-
 client = Elasticsearch(
     ELASTIC_URL,
     ca_certs=PATH_TO_CRT,
     basic_auth=(USER, ELASTIC_PASSWORD)
 )
+
+
+class ElasticValueCreator:
+    name = "ElasticValueCreator"
+
+    @classmethod
+    def should_create(cls, elastic_obj) -> bool:
+        pass
+
+    @classmethod
+    def create(cls, elastic_obj):
+        pass
+
+    @classmethod
+    def dict_from_hit_meta(cls, value) -> dict:
+        dict_ = {}
+        for key in dir(value):
+            dict_[key] = value[key]
+        return dict_
+
+    @classmethod
+    def dict_from_elastic_hit(cls, hit: elasticsearch_dsl.response.hit.Hit) -> dict:
+        assert (isinstance(hit, elasticsearch_dsl.response.hit.Hit))
+        dict_ = {}
+        for key in dir(hit):
+            if key == 'meta':
+                dict_[key] = cls.dict_from_hit_meta(hit.meta)
+                continue
+            dict_[key] = hit[key]
+        return dict_
+
+
+class ElasticSentenceCreator(ElasticValueCreator):
+    name = "ElasticSentenceCreator"
+
+    @classmethod
+    def should_create(cls, elastic_obj) -> bool:
+        return elastic_obj['type'] == 'Sentence'
+
+    @classmethod
+    def create(cls, elastic_obj) -> Sentence:
+        elastic_obj_dict = cls.dict_from_elastic_hit(elastic_obj)
+        kwargs = dict(filter(lambda x: x[1] != "meta", elastic_obj_dict.items()))
+        kwargs['id_'] = elastic_obj_dict["meta"]["id"]
+        kwargs['type_'] = kwargs.pop('type')
+        return Sentence(**kwargs)
 
 
 class Comment(Document):
@@ -35,7 +79,7 @@ class Comment(Document):
         kwargs = dict(filter(lambda x: x[1] is not None, kwargs.items()))
         return super().save(**kwargs)
 
-    
+
 class Topic(Document):
     title = Text()
     created_at = Date()
@@ -50,6 +94,7 @@ class Topic(Document):
 
 
 class ElasticSearcher(Searcher):
+    elastic_value_creators = [ElasticSentenceCreator]
 
     @classmethod
     def add_record(cls, post: Post = None, using=client, index_topic: str = None, index_comments: str = None):
@@ -67,27 +112,25 @@ class ElasticSearcher(Searcher):
 
     @classmethod
     def get_relevant_topics(cls,
-                     message: str,
-                     using=client,
-                     index_topics: str = "topics") -> list[tuple[str, str]]:
-        response = Search(index=index_topics, using=client).query("match", title=message).execute()
+                            message: str,
+                            using=client,
+                            index_topics: str = "topics") -> list[tuple[str, str]]:
+        response = Search(index=index_topics, using=using).query("match", title=message).execute()
         topics = []
         for hit in response:
-            topics.append((hit['title'], ''))
+            topics.append((hit['title'], hit.meta['id']))
         return topics
-        # for hit in response:
-        #     print(ElasticSearcher.__dict_from_elastic_hit(hit))
 
     @classmethod
-    def get_comment_by_id(cls, id_: str = None):
-        pass
+    def get_comments_by_topic_id(cls,
+                                 id_: str = None,
+                                 using=client,
+                                 index_comments: str = "comments") -> list[Value]:
+        response = Search(index=index_comments, using=using).query("match", topic_id=id_).execute()
+        comments = []
+        for hit in response:
+            for creator in cls.elastic_value_creators:
+                if creator.should_create(hit):
+                    comments.append(creator.create(hit))
 
-    @classmethod
-    def __dict_from_elastic_hit(cls, hit: elasticsearch_dsl.response.hit.Hit):
-        assert(isinstance(hit, elasticsearch_dsl.response.hit.Hit))
-        dict_ = {}
-        for key in dir(hit):
-            if key == 'meta':
-                continue
-            dict_[key] = hit[key]
-        return dict_
+        return comments

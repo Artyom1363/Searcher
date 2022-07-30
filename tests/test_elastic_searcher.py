@@ -79,6 +79,13 @@ class TestElasticAlgo(unittest.TestCase):
         self.assertEqual(relevant[0][0], "тесты по физике")
         self.assertNotEqual(relevant[0][1], "")
 
+        comments = ElasticSearcher.get_comments_by_topic_id(relevant[0][1],
+                                                            using=self.client,
+                                                            index_comments=self.index_comments)
+        self.assertEqual(len(comments), 1)
+        self.assertEqual(comments[0].get_type(), "Sentence")
+        self.assertEqual(comments[0].get_sentence(), "Ответ к тесту")
+
     def tearDown(self) -> None:
         # delete indexes
         self.client.indices.delete(index=self.index_topic, ignore=[400, 404])
