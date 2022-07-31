@@ -11,3 +11,7 @@ class Searcher:
     @classmethod
     def append_comment_by_id(cls, id_: str = None, value: Value = None):
         pass
+
+    @classmethod
+    def get_relevant(cls, message: str) -> list[Post]:
+        pass
