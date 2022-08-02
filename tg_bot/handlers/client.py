@@ -20,6 +20,12 @@ async def send_welcome(message: types.Message):
     # await message.reply("Hi!\nI'm EchoBot!\nPowered by aiogram.")
 
 
+async def callback_handler(callback):
+    # Вы нажали на кнопку и сработал call back handler
+    await callback.answer(f" callback data: {callback.data}", show_alert=True)
+    # bot.send_message(call.message.chat.id, )
+
+
 # @dp.message_handler()
 async def echo(message: types.Message):
     # old style:
@@ -33,7 +39,8 @@ async def echo(message: types.Message):
         await message.answer("Вот что нам удалось найти", reply_markup=markup, parse_mode='Markdown')
 
 
-def register_handlers_client(dp : Dispatcher):
+def register_handlers_client(dp: Dispatcher):
     dp.register_message_handler(send_welcome, commands=['start', 'help'])
+    dp.register_callback_query_handler(callback_handler, lambda call: True)
     dp.register_message_handler(echo)
     # dp.register_message_handler()
