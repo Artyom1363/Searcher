@@ -12,3 +12,10 @@ pip install -e .
 ``` bash
 python3 -m unittest discover tests
 ```
+
+##### Запуск Telegram бота
+``` bash
+python3 tg_bot/main.py
+```
+
+Приложение может быть запущено как несколько отдельных ботов, (отдельно Telegram, Vk)
