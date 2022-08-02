@@ -4,6 +4,7 @@ import elasticsearch_dsl
 from elasticsearch_dsl import Document, Date, Nested, Boolean, Index
 from elasticsearch_dsl import analyzer, Completion, Keyword, Text, Search
 from elasticsearch import Elasticsearch
+from elasticsearch.exceptions import NotFoundError
 
 from search.config import USER, ELASTIC_PASSWORD, PATH_TO_CRT, ELASTIC_URL
 from search.searcher import Searcher
@@ -47,20 +48,41 @@ class ElasticValueCreator:
             dict_[key] = hit[key]
         return dict_
 
+    @classmethod
+    def get_type(cls, elastic_obj) -> str:
+        if isinstance(elastic_obj, dict):
+            return elastic_obj['_source']['type']
+        elif isinstance(elastic_obj, elasticsearch_dsl.response.hit.Hit):
+            return elastic_obj['type']
+
 
 class ElasticSentenceCreator(ElasticValueCreator):
     name = "ElasticSentenceCreator"
 
     @classmethod
     def should_create(cls, elastic_obj) -> bool:
-        return elastic_obj['type'] == 'Sentence'
+        return cls.get_type(elastic_obj) == "Sentence"
 
     @classmethod
     def create(cls, elastic_obj) -> Sentence:
-        elastic_obj_dict = cls.dict_from_elastic_hit(elastic_obj)
+        if isinstance(elastic_obj, dict):
+            return cls.create_from_dict(elastic_obj)
+        elif isinstance(elastic_obj, elasticsearch_dsl.response.hit.Hit):
+            return cls.create_from_elastic_hit(elastic_obj)
+
+    @classmethod
+    def create_from_elastic_hit(cls, elastic_hit) -> Sentence:
+        elastic_obj_dict = cls.dict_from_elastic_hit(elastic_hit)
         kwargs = dict(filter(lambda x: x[1] != "meta", elastic_obj_dict.items()))
-        kwargs['id_'] = elastic_obj_dict["meta"]["id"]
-        kwargs['type_'] = kwargs.pop('type')
+        kwargs['_id'] = elastic_obj_dict["meta"]["id"]
+        kwargs['_type'] = kwargs.pop('type')
+        return Sentence(**kwargs)
+
+    @classmethod
+    def create_from_dict(cls, elastic_dict) -> Sentence:
+        kwargs = elastic_dict['_source']
+        kwargs['_id'] = elastic_dict['_id']
+        kwargs['_type'] = kwargs.pop('type')
         return Sentence(**kwargs)
 
 
@@ -134,3 +156,41 @@ class ElasticSearcher(Searcher):
                     comments.append(creator.create(hit))
 
         return comments
+
+    @classmethod
+    def get_topic_by_id(cls,
+                        id_: str,
+                        using=client,
+                        index_topics: str = "topics") -> str:
+        try:
+            response = using.get(index=index_topics, id=id_)
+        except NotFoundError:
+            return None
+        except ValueError:
+            return None
+        except Exception:
+            return None
+        else:
+            return response['_source']['title']
+
+    @classmethod
+    def get_comment_by_id(cls,
+                          id_: str,
+                          using=client,
+                          index_comments: str = "comments") -> Value:
+        try:
+            response = using.get(index=index_comments, id=id_)
+        except NotFoundError:
+            print("NotFoundError")
+            return None
+        except ValueError:
+            print("ValueError")
+            return None
+        except Exception:
+            print("Exception")
+            return None
+        else:
+            hit = response
+            for creator in cls.elastic_value_creators:
+                if creator.should_create(hit):
+                    return creator.create(hit)

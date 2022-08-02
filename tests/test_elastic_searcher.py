@@ -79,9 +79,23 @@ class TestElasticAlgo(unittest.TestCase):
         ElasticSearcher.add_record(post, index_topic=self.index_topic, index_comments=self.index_comments)
 
         time.sleep(1)
-        relevant = ElasticSearcher.get_relevant_topics(message='физике тесты', using=self.client, index_topics=self.index_topic)
+        relevant = ElasticSearcher.get_relevant_topics(message='физике тесты',
+                                                       using=self.client,
+                                                       index_topics=self.index_topic)
         self.assertEqual(relevant[0][0], "тесты по физике")
         self.assertNotEqual(relevant[0][1], "")
+
+        # TESTING get_topic_by_id
+        # ..................
+        topic = ElasticSearcher.get_topic_by_id(relevant[0][1], using=self.client, index_topics=self.index_topic)
+        self.assertEqual(topic, "тесты по физике")
+
+        topic = ElasticSearcher.get_topic_by_id(" ", using=self.client, index_topics=self.index_topic)
+        self.assertIsNone(topic)
+
+        topic = ElasticSearcher.get_topic_by_id("", using=self.client, index_topics=self.index_topic)
+        self.assertIsNone(topic)
+        # ..................
 
         comments = ElasticSearcher.get_comments_by_topic_id(relevant[0][1],
                                                             using=self.client,
@@ -89,6 +103,18 @@ class TestElasticAlgo(unittest.TestCase):
         self.assertEqual(len(comments), 1)
         self.assertEqual(comments[0].get_type(), "Sentence")
         self.assertEqual(comments[0].get_sentence(), "Ответ к тесту")
+
+        # TESTING get_topic_by_id
+        # ..................
+        print(comments[0].get_id())
+        comment = ElasticSearcher.get_comment_by_id(comments[0].get_id(),
+                                                    using=self.client,
+                                                    index_comments=self.index_comments)
+        self.assertTrue(isinstance(comment, Sentence))
+        self.assertEqual(comment.get_id(), comments[0].get_id())
+        self.assertEqual(comment.get_type(), comments[0].get_type())
+        self.assertEqual(comment.get_sentence(), comments[0].get_sentence())
+        # ..................
 
     def tearDown(self) -> None:
         # delete indexes
