@@ -136,10 +136,15 @@ class ElasticSearcher(Searcher):
     def get_relevant_topics(cls,
                             message: str,
                             using=client,
-                            index_topics: str = "topics") -> list[tuple[str, str]]:
+                            index_topics: str = "topics",
+                            limit: int = 3) -> list[tuple[str, str]]:
         response = Search(index=index_topics, using=using).query("match", title=message).execute()
         topics = []
+        hits_counter = 0
         for hit in response:
+            if hits_counter >= limit:
+                break
+            hits_counter += 1
             topics.append((hit['title'], hit.meta['id']))
         return topics
 
@@ -147,10 +152,15 @@ class ElasticSearcher(Searcher):
     def get_comments_by_topic_id(cls,
                                  id_: str = None,
                                  using=client,
-                                 index_comments: str = "comments") -> list[Value]:
+                                 index_comments: str = "comments",
+                                 limit: int = 3) -> list[Value]:
         response = Search(index=index_comments, using=using).query("match", topic_id=id_).execute()
         comments = []
+        hits_counter = 0
         for hit in response:
+            if hits_counter >= limit:
+                break
+            hits_counter += 1
             for creator in cls.elastic_value_creators:
                 if creator.should_create(hit):
                     comments.append(creator.create(hit))

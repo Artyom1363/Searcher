@@ -7,13 +7,46 @@ def get_search_record_button(topic: str, id_: str) -> InlineKeyboardButton:
 
 def get_relevant_topics_keyboard(records: list[tuple[str, str]]) -> InlineKeyboardMarkup:
     markup = InlineKeyboardMarkup()
-
+    counter = 1
+    buttons_loop = []
     for topic, id_ in records:
         button = get_search_record_button(topic, id_)
+        button_loop = InlineKeyboardButton(text="🔍" + str(counter), callback_data=f'questionScale_{id_}')
+        counter += 1
+        buttons_loop.append(button_loop)
         markup.add(button)
+    markup.row(*buttons_loop)
 
     button = InlineKeyboardButton(text="Добавить ответ на свой вопрос📥",
                                   callback_data=f'addSame')
 
     markup.add(button)
+    return markup
+
+
+def get_comment_markup(comment: str, comment_id: str, likes: int = 0, liked: bool = False) -> InlineKeyboardMarkup:
+
+    if not liked:
+        like_expose = str(likes) + " ♡"
+    else:
+        like_expose = str(likes) + " ❤️"
+
+    button_like = InlineKeyboardButton(text=like_expose,
+                                       callback_data=f'like_{comment_id}')
+
+    button_before = InlineKeyboardButton(text='⬅️',
+                                         callback_data=f'prev_{comment_id}')
+
+    button_add = InlineKeyboardButton(text='📥',
+                                      callback_data=f'add_{comment_id}')
+
+    button_after = InlineKeyboardButton(text='➡️',
+                                        callback_data=f'next_{comment_id}')
+
+    button_comment = InlineKeyboardButton(text=comment,
+                                          callback_data=f'comment_{comment_id}')
+
+    markup = InlineKeyboardMarkup()
+    markup.add(button_comment)
+    markup.row(button_before, button_like, button_add, button_after)
     return markup
