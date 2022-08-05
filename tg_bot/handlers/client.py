@@ -1,9 +1,13 @@
+from typing import Any
+
 from aiogram import types
 from aiogram.dispatcher import Dispatcher
+from aiogram.dispatcher import FSMContext
 
 from tg_bot.config import USER_GUIDE, VIDEO_GUIDE
 from tg_bot.keyboards.keyboards import get_relevant_topics_keyboard, get_comment_markup
 from tg_bot.create_bot import bot
+from tg_bot.states import UserState
 
 from search.elastic_searcher import ElasticSearcher
 
@@ -17,6 +21,8 @@ async def send_welcome(message: types.Message):
     await bot.send_document(message.chat.id, USER_GUIDE)
     await bot.send_video(message.chat.id, VIDEO_GUIDE)
     await bot.send_message(message.chat.id, text='Введите запрос:')
+    await UserState.search.set()
+    # print(type(UserState))
     # await message.reply("Hi!\nI'm EchoBot!\nPowered by aiogram.")
 
 
@@ -50,13 +56,10 @@ async def show_comments(callback):
     # await callback.answer(f"Тут откроются коменты", show_alert=True)
 
 
-async def default_callback_handler(callback):
-    await callback.answer(f"Пока что не существует обработчика", show_alert=True)
-
-
-async def echo(message: types.Message):
+async def search(message: types.Message, state: FSMContext):
     # old style:
     # await bot.send_message(message.chat.id, message.text)
+    await state.update_data(search=message.text)
 
     relevant = ElasticSearcher.get_relevant_topics(message=message.text)
     if len(relevant) == 0:
@@ -66,9 +69,25 @@ async def echo(message: types.Message):
         await message.answer("Вот что нам удалось найти", reply_markup=markup, parse_mode='Markdown')
 
 
+async def default_callback_handler(callback, state=FSMContext):
+    search_values = await state.get_data()
+
+    await callback.answer(f"Пока что не существует обработчика, search_value={search_values}", show_alert=True)
+    # await
+
+
 def register_handlers_client(dp: Dispatcher):
-    dp.register_message_handler(send_welcome, commands=['start', 'help'])
-    dp.register_callback_query_handler(show_topic, lambda call: call.data.startswith("questionScale_"))
-    dp.register_callback_query_handler(show_comments, lambda call: call.data.startswith("question_"))
-    dp.register_callback_query_handler(default_callback_handler, lambda call: True)
-    dp.register_message_handler(echo)
+    dp.register_message_handler(send_welcome,
+                                commands=['start', 'help'],
+                                state=[None, UserState.search])
+    dp.register_callback_query_handler(show_topic,
+                                       lambda call: call.data.startswith("questionScale_"),
+                                       state=[None, UserState.search])
+    dp.register_callback_query_handler(show_comments,
+                                       lambda call: call.data.startswith("question_"),
+                                       state=[None, UserState.search])
+    dp.register_callback_query_handler(default_callback_handler,
+                                       lambda call: True,
+                                       state=[None, UserState.search])
+    dp.register_message_handler(search,
+                                state=UserState.search)

@@ -27,9 +27,9 @@ def get_relevant_topics_keyboard(records: list[tuple[str, str]]) -> InlineKeyboa
 def get_comment_markup(comment: str, comment_id: str, likes: int = 0, liked: bool = False) -> InlineKeyboardMarkup:
 
     if not liked:
-        like_expose = str(likes) + " ♡"
+        like_expose = str(likes) + "♡"
     else:
-        like_expose = str(likes) + " ❤️"
+        like_expose = str(likes) + "❤️"
 
     button_like = InlineKeyboardButton(text=like_expose,
                                        callback_data=f'like_{comment_id}')
