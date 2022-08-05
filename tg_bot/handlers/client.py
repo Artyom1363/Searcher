@@ -36,7 +36,6 @@ async def show_topic(callback):
 
 
 async def show_comments(callback):
-
     _type, _id = callback.data.split('_')
     assert (_type == 'question')
     topic = ElasticSearcher.get_topic_by_id(_id)
@@ -54,6 +53,19 @@ async def show_comments(callback):
     # message_id = callback.message.message_id,
     # chat_id = callback.message.chat.id,
     # await callback.answer(f"Тут откроются коменты", show_alert=True)
+
+
+async def self_ans_callback_handler(callback, state=FSMContext):
+    # search_values = await state.get_data()
+
+    await callback.answer(f"Добавляй что-нибудь", show_alert=True)
+    await UserState.adding.set()
+    # await
+
+
+async def self_answer_text_message(message: types.Message, state=FSMContext):
+    await message.answer("Спасибо вы добавили ответ на свой вопрос.")
+    await UserState.search.set()
 
 
 async def search(message: types.Message, state: FSMContext):
@@ -86,8 +98,14 @@ def register_handlers_client(dp: Dispatcher):
     dp.register_callback_query_handler(show_comments,
                                        lambda call: call.data.startswith("question_"),
                                        state=[None, UserState.search])
+    dp.register_message_handler(self_answer_text_message,
+                                lambda call: True,
+                                state=UserState.adding)
+    dp.register_callback_query_handler(self_ans_callback_handler,
+                                       lambda call: call.data == 'selfAns',
+                                       state=[None, UserState.search])
     dp.register_callback_query_handler(default_callback_handler,
                                        lambda call: True,
                                        state=[None, UserState.search])
     dp.register_message_handler(search,
-                                state=UserState.search)
+                                state=[None, UserState.search])

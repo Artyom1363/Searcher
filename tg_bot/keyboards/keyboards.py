@@ -18,7 +18,7 @@ def get_relevant_topics_keyboard(records: list[tuple[str, str]]) -> InlineKeyboa
     markup.row(*buttons_loop)
 
     button = InlineKeyboardButton(text="Добавить ответ на свой вопрос📥",
-                                  callback_data=f'addSame')
+                                  callback_data=f'selfAns')
 
     markup.add(button)
     return markup
