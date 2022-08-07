@@ -24,12 +24,16 @@ def get_relevant_topics_keyboard(records: list[tuple[str, str]]) -> InlineKeyboa
     return markup
 
 
-def get_comment_markup(comment: str, comment_id: str, likes: int = 0, liked: bool = False) -> InlineKeyboardMarkup:
+def get_comment_markup(comment: str,
+                       comment_id: str,
+                       likes: int = 0,
+                       liked: bool = False,
+                       favorite: bool = False) -> InlineKeyboardMarkup:
 
-    if not liked:
-        like_expose = str(likes) + "♡"
-    else:
+    if liked:
         like_expose = str(likes) + "❤️"
+    else:
+        like_expose = str(likes) + "♡"
 
     button_like = InlineKeyboardButton(text=like_expose,
                                        callback_data=f'like_{comment_id}')
@@ -46,7 +50,16 @@ def get_comment_markup(comment: str, comment_id: str, likes: int = 0, liked: boo
     button_comment = InlineKeyboardButton(text=comment,
                                           callback_data=f'comment_{comment_id}')
 
+    if favorite:
+        button_favorite = InlineKeyboardButton(text='✅',
+                                               callback_data=f'favorite_{comment_id}')
+    else:
+        button_favorite = InlineKeyboardButton(text='➕',
+                                               callback_data=f'favorite_{comment_id}')
+
     markup = InlineKeyboardMarkup()
     markup.add(button_comment)
-    markup.row(button_before, button_like, button_add, button_after)
+    markup.row(button_like, button_add, button_favorite)
+    markup.row(button_before, button_after)
+
     return markup

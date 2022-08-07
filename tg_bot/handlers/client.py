@@ -11,6 +11,9 @@ from tg_bot.states import UserState
 
 from search.elastic_searcher import ElasticSearcher
 
+from data_types.values import Sentence
+from data_types.post import Post
+
 
 # @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
@@ -44,7 +47,7 @@ async def show_comments(callback):
         await callback.answer(f"По данной теме все комментарии удалены", show_alert=True)
         return
 
-    markup = get_comment_markup("TEXT", comments[0].get_id())
+    markup = get_comment_markup(comments[0].get_sentence(), comments[0].get_id())
 
     await bot.send_message(callback.message.chat.id,
                            text=f'Сейчас вы видите комментарии пользователей на вопрос: *{topic}*',
@@ -57,13 +60,21 @@ async def show_comments(callback):
 
 async def self_ans_callback_handler(callback, state=FSMContext):
     # search_values = await state.get_data()
-
-    await callback.answer(f"Добавляй что-нибудь", show_alert=True)
+    await bot.send_message(callback.message.chat.id, f"Введи ответ (это может быть текст)")
     await UserState.adding.set()
-    # await
 
 
 async def self_answer_text_message(message: types.Message, state=FSMContext):
+    sentence = Sentence(sentence=message.text)
+    search_values = await state.get_data()
+    # message.answer()
+    # print("search_values: ", search_values, " ", type(search_values))
+    post = Post(
+        key=search_values.get('search'),
+        values=[sentence])
+
+    ElasticSearcher.add_record(post)
+
     await message.answer("Спасибо вы добавили ответ на свой вопрос.")
     await UserState.search.set()
 
@@ -92,20 +103,26 @@ def register_handlers_client(dp: Dispatcher):
     dp.register_message_handler(send_welcome,
                                 commands=['start', 'help'],
                                 state=[None, UserState.search])
+
     dp.register_callback_query_handler(show_topic,
                                        lambda call: call.data.startswith("questionScale_"),
                                        state=[None, UserState.search])
+
     dp.register_callback_query_handler(show_comments,
                                        lambda call: call.data.startswith("question_"),
                                        state=[None, UserState.search])
+
     dp.register_message_handler(self_answer_text_message,
                                 lambda call: True,
                                 state=UserState.adding)
+
     dp.register_callback_query_handler(self_ans_callback_handler,
                                        lambda call: call.data == 'selfAns',
                                        state=[None, UserState.search])
+
     dp.register_callback_query_handler(default_callback_handler,
                                        lambda call: True,
                                        state=[None, UserState.search])
+
     dp.register_message_handler(search,
                                 state=[None, UserState.search])
