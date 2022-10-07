@@ -18,6 +18,10 @@ docker start es02
 docker attach es02
 ```
 
+##### Запуск бота
+``` bash
+python3 tg_bot/main.py
+```
 
 ##### Запуск тестов
 ``` bash
