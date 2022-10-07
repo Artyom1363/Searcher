@@ -33,4 +33,11 @@ python3 -m unittest discover tests
 python3 tg_bot/main.py
 ```
 
+##### Запуск базы данных
+``` bash
+cd databases
+docker-compose up
+```
+
+
 Приложение может быть запущено как несколько отдельных ботов, (отдельно Telegram, Vk)
