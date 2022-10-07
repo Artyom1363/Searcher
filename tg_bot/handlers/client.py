@@ -6,7 +6,7 @@ from aiogram.dispatcher import FSMContext
 
 from tg_bot.config import USER_GUIDE, VIDEO_GUIDE
 from tg_bot.keyboards.keyboards import get_relevant_topics_keyboard, get_comment_markup
-from tg_bot.create_bot import bot
+from tg_bot.create_bot import bot, pool
 from tg_bot.states import UserState
 
 from search.elastic_searcher import ElasticSearcher
@@ -14,7 +14,12 @@ from search.elastic_searcher import ElasticSearcher
 from data_types.values import Sentence
 from data_types.post import Post
 
-from src import Like
+from src import Like, get_like
+
+
+
+# async def show_comments():
+
 
 
 # @dp.message_handler(commands=['start', 'help'])
@@ -40,7 +45,7 @@ async def show_topic(callback):
     await callback.answer(f"{topic[0:200]}", show_alert=True)
 
 
-async def show_comments(callback):
+async def show_comments_by_topic(callback):
     _type, _id = callback.data.split('_')
     assert (_type == 'question')
     topic = ElasticSearcher.get_topic_by_id(_id)
@@ -94,6 +99,22 @@ async def search(message: types.Message, state: FSMContext):
         await message.answer("Вот что нам удалось найти", reply_markup=markup, parse_mode='Markdown')
 
 
+async def like_callback_handler(callback, state=FSMContext):
+    _type, _id = callback.data.split('_')
+    like = await get_like(pool=pool,
+                          user_id=callback.message.chat.id,
+                          comment_id=_id)
+
+    await like.switch()
+
+    markup = get_comment_markup(ElasticSearcher.get_comment_by_id(_id).get_sentence(),
+                                _id,
+                                likes=like.get_total_likes(),
+                                liked=like.is_on())
+
+    await callback.message.edit_text(text=callback.message.text,
+                                     reply_markup=markup,
+                                     parse_mode='Markdown')
 
 
 async def default_callback_handler(callback, state=FSMContext):
@@ -112,7 +133,7 @@ def register_handlers_client(dp: Dispatcher):
                                        lambda call: call.data.startswith("questionScale_"),
                                        state=[None, UserState.search])
 
-    dp.register_callback_query_handler(show_comments,
+    dp.register_callback_query_handler(show_comments_by_topic,
                                        lambda call: call.data.startswith("question_"),
                                        state=[None, UserState.search])
 
@@ -122,6 +143,10 @@ def register_handlers_client(dp: Dispatcher):
 
     dp.register_callback_query_handler(self_ans_callback_handler,
                                        lambda call: call.data == 'selfAns',
+                                       state=[None, UserState.search])
+
+    dp.register_callback_query_handler(like_callback_handler,
+                                       lambda call: call.data.startswith('like_'),
                                        state=[None, UserState.search])
 
     dp.register_callback_query_handler(default_callback_handler,

@@ -1,6 +1,6 @@
 import asyncpg
 import asyncio
-from pg_config import *
+from .pg_config import *
 
 
 async def create_db():
