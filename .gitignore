@@ -1,2 +1,7 @@
 search/config.py
 security/
+.idea/
+*.DS_Store
+.venv/
+*egg-info*
+*__pycache__*
