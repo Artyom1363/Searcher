@@ -1,22 +1,6 @@
 from asyncpg import Connection
 
 
-async def get_like(pool: Connection, user_id: int, comment_id: str):
-    query = f"SELECT" \
-            f"(SELECT COUNT(*) FROM likes WHERE comment_id = '{comment_id}') AS total," \
-            f"( SELECT COUNT(*) FROM likes WHERE user_id = {user_id} " \
-            f"and comment_id = '{comment_id}' ) AS personal;"
-
-    result = await pool.fetch(query)
-    if result[0][1] == 0:
-        like_state = LikeOff(user_id, comment_id, result[0][0], False, pool)
-    elif result[0][1] == 1:
-        like_state = LikeOn(user_id, comment_id, result[0][0], True, pool)
-    else:
-        raise Exception("cant detect type of like")
-    return Like(like_state)
-
-
 class LikeState:
     def __init__(self, user_id: int,
                  comment_id: str, total_likes: int,
@@ -38,6 +22,21 @@ class LikeState:
 
 
 class Like:
+    @classmethod
+    async def get(cls, pool: Connection, user_id: int, comment_id: str):
+        query = f"SELECT" \
+                f"(SELECT COUNT(*) FROM likes WHERE comment_id = '{comment_id}') AS total," \
+                f"( SELECT COUNT(*) FROM likes WHERE user_id = {user_id} " \
+                f"and comment_id = '{comment_id}' ) AS personal;"
+
+        result = await pool.fetch(query)
+        if result[0][1] == 0:
+            like_state = LikeOff(user_id, comment_id, result[0][0], False, pool)
+        elif result[0][1] == 1:
+            like_state = LikeOn(user_id, comment_id, result[0][0], True, pool)
+        else:
+            raise Exception("cant detect type of like")
+        return Like(like_state)
 
     def __init__(self, like: LikeState):
         self.like = like

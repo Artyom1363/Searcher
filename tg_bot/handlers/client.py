@@ -14,6 +14,8 @@ from search.elastic_searcher import ElasticSearcher
 from data_types.values import Sentence
 from data_types.post import Post
 
+from src import Like
+
 
 # @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
@@ -90,6 +92,8 @@ async def search(message: types.Message, state: FSMContext):
     else:
         markup = get_relevant_topics_keyboard(relevant)
         await message.answer("Вот что нам удалось найти", reply_markup=markup, parse_mode='Markdown')
+
+
 
 
 async def default_callback_handler(callback, state=FSMContext):
