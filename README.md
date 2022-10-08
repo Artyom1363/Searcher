@@ -41,7 +41,7 @@ docker-compose up
 
 ##### Для создания базы данных запустите
 ``` bash
-python3 tg_bot/pg/pg_utils.py
+python3 src/pg/pg_utils.py
 ```
 
 

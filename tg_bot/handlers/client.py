@@ -6,7 +6,7 @@ from aiogram.dispatcher import FSMContext
 
 from tg_bot.config import USER_GUIDE, VIDEO_GUIDE
 from tg_bot.keyboards.keyboards import get_relevant_topics_keyboard, get_comment_markup
-from tg_bot.create_bot import bot, pool
+from tg_bot.create_bot import bot
 from tg_bot.states import UserState
 
 from search.elastic_searcher import ElasticSearcher
@@ -14,12 +14,8 @@ from search.elastic_searcher import ElasticSearcher
 from data_types.values import Sentence
 from data_types.post import Post
 
-from src import Like, get_like
-
-
-
-# async def show_comments():
-
+from src import get_like
+from src.pg import pool
 
 
 # @dp.message_handler(commands=['start', 'help'])
@@ -32,8 +28,6 @@ async def send_welcome(message: types.Message):
     await bot.send_video(message.chat.id, VIDEO_GUIDE)
     await bot.send_message(message.chat.id, text='Введите запрос:')
     await UserState.search.set()
-    # print(type(UserState))
-    # await message.reply("Hi!\nI'm EchoBot!\nPowered by aiogram.")
 
 
 async def show_topic(callback):
@@ -60,8 +54,6 @@ async def show_comments_by_topic(callback):
                            text=f'Сейчас вы видите комментарии пользователей на вопрос: *{topic}*',
                            reply_markup=markup,
                            parse_mode='Markdown')
-    # message_id = callback.message.message_id,
-    # chat_id = callback.message.chat.id,
     # await callback.answer(f"Тут откроются коменты", show_alert=True)
 
 
@@ -74,8 +66,6 @@ async def self_ans_callback_handler(callback, state=FSMContext):
 async def self_answer_text_message(message: types.Message, state=FSMContext):
     sentence = Sentence(sentence=message.text)
     search_values = await state.get_data()
-    # message.answer()
-    # print("search_values: ", search_values, " ", type(search_values))
     post = Post(
         key=search_values.get('search'),
         values=[sentence])
@@ -121,7 +111,6 @@ async def default_callback_handler(callback, state=FSMContext):
     search_values = await state.get_data()
 
     await callback.answer(f"Пока что не существует обработчика, search_value={search_values}", show_alert=True)
-    # await
 
 
 def register_handlers_client(dp: Dispatcher):
