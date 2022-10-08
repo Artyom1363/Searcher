@@ -14,7 +14,7 @@ from search.elastic_searcher import ElasticSearcher
 from data_types.values import Sentence
 from data_types.post import Post
 
-from src import Like
+from src import Like, Favorite
 from src.pg import pool
 
 
@@ -41,6 +41,7 @@ async def show_topic(callback):
 
 async def show_comments_by_topic(callback):
     _type, _id = callback.data.split('_')
+    user_id = callback.message.chat.id
     assert (_type == 'question')
     topic = ElasticSearcher.get_topic_by_id(_id)
     comments = ElasticSearcher.get_comments_by_topic_id(_id, limit=1)
@@ -50,15 +51,20 @@ async def show_comments_by_topic(callback):
         return
 
     like = await Like.get(pool=pool,
-                          user_id=callback.message.chat.id,
+                          user_id=user_id,
                           comment_id=comment_id)
+
+    favorite = await Favorite.get(pool=pool,
+                                  user_id=user_id,
+                                  comment_id=comment_id)
 
     markup = get_comment_markup(comment=comments[0].get_sentence(),
                                 comment_id=comment_id,
                                 likes=like.get_total_likes(),
-                                liked=like.is_on())
+                                liked=like.is_on(),
+                                favorite=favorite.is_on())
 
-    await bot.send_message(callback.message.chat.id,
+    await bot.send_message(user_id,
                            text=f'Сейчас вы видите комментарии пользователей на вопрос: *{topic}*',
                            reply_markup=markup,
                            parse_mode='Markdown')
@@ -98,17 +104,46 @@ async def search(message: types.Message, state: FSMContext):
 
 
 async def like_callback_handler(callback, state=FSMContext):
-    _type, _id = callback.data.split('_')
+    _type, comment_id = callback.data.split('_')
+    user_id = callback.message.chat.id
     like = await Like.get(pool=pool,
-                          user_id=callback.message.chat.id,
-                          comment_id=_id)
+                          user_id=user_id,
+                          comment_id=comment_id)
 
     await like.switch()
 
-    markup = get_comment_markup(ElasticSearcher.get_comment_by_id(_id).get_sentence(),
-                                _id,
+    favorite = await Favorite.get(pool=pool,
+                                  user_id=user_id,
+                                  comment_id=comment_id)
+
+    markup = get_comment_markup(ElasticSearcher.get_comment_by_id(comment_id).get_sentence(),
+                                comment_id,
                                 likes=like.get_total_likes(),
-                                liked=like.is_on())
+                                liked=like.is_on(),
+                                favorite=favorite.is_on())
+
+    await callback.message.edit_text(text=callback.message.text,
+                                     reply_markup=markup,
+                                     parse_mode='Markdown')
+
+
+async def favorite_callback_handler(callback, state=FSMContext):
+    _type, comment_id = callback.data.split('_')
+    user_id = callback.message.chat.id
+    like = await Like.get(pool=pool,
+                          user_id=user_id,
+                          comment_id=comment_id)
+
+    favorite = await Favorite.get(pool=pool,
+                                  user_id=user_id,
+                                  comment_id=comment_id)
+    await favorite.switch()
+
+    markup = get_comment_markup(ElasticSearcher.get_comment_by_id(comment_id).get_sentence(),
+                                comment_id,
+                                likes=like.get_total_likes(),
+                                liked=like.is_on(),
+                                favorite=favorite.is_on())
 
     await callback.message.edit_text(text=callback.message.text,
                                      reply_markup=markup,
@@ -144,6 +179,10 @@ def register_handlers_client(dp: Dispatcher):
 
     dp.register_callback_query_handler(like_callback_handler,
                                        lambda call: call.data.startswith('like_'),
+                                       state=[None, UserState.search])
+
+    dp.register_callback_query_handler(favorite_callback_handler,
+                                       lambda call: call.data.startswith('favorite_'),
                                        state=[None, UserState.search])
 
     dp.register_callback_query_handler(default_callback_handler,
