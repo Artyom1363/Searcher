@@ -1,2 +1,3 @@
-from .likes import Like, get_like
-__all__ = ["Like", "get_like"]
+from .likes import Like
+
+__all__ = ["Like"]

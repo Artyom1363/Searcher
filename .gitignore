@@ -1,5 +1,6 @@
 search/config.py
 security/
+src/pg/.env
 tg_bot/config.py
 .idea/
 *.DS_Store

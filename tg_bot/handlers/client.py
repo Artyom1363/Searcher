@@ -14,7 +14,7 @@ from search.elastic_searcher import ElasticSearcher
 from data_types.values import Sentence
 from data_types.post import Post
 
-from src import get_like
+from src import Like
 from src.pg import pool
 
 
@@ -44,11 +44,19 @@ async def show_comments_by_topic(callback):
     assert (_type == 'question')
     topic = ElasticSearcher.get_topic_by_id(_id)
     comments = ElasticSearcher.get_comments_by_topic_id(_id, limit=1)
+    comment_id = comments[0].get_id()
     if len(comments) == 0:
         await callback.answer(f"По данной теме все комментарии удалены", show_alert=True)
         return
 
-    markup = get_comment_markup(comments[0].get_sentence(), comments[0].get_id())
+    like = await Like.get(pool=pool,
+                          user_id=callback.message.chat.id,
+                          comment_id=comment_id)
+
+    markup = get_comment_markup(comment=comments[0].get_sentence(),
+                                comment_id=comment_id,
+                                likes=like.get_total_likes(),
+                                liked=like.is_on())
 
     await bot.send_message(callback.message.chat.id,
                            text=f'Сейчас вы видите комментарии пользователей на вопрос: *{topic}*',
@@ -91,7 +99,7 @@ async def search(message: types.Message, state: FSMContext):
 
 async def like_callback_handler(callback, state=FSMContext):
     _type, _id = callback.data.split('_')
-    like = await get_like(pool=pool,
+    like = await Like.get(pool=pool,
                           user_id=callback.message.chat.id,
                           comment_id=_id)
 
