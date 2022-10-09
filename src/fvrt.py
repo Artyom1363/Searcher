@@ -3,35 +3,39 @@ from asyncpg import Connection
 
 class FavoriteState:
     def __init__(self, user_id: int,
-                 comment_id: str, is_on: bool,
+                 comment_id: str,
                  pool: Connection):
         self.user_id = user_id
         self.comment_id = comment_id
-        self.is_on = is_on
         self.pool = pool
 
-    def is_on(self):
-        return self.is_on
-
-    def is_off(self):
-        return not self.is_on
+    def is_on(self) -> bool:
+        pass
 
     async def switch(self):
         pass
 
+    def __eq__(self, other) -> bool:
+        # print(f"debug in FavoriteState:{type(other)=}")
+        # print(f"{self.on == other.on=}")
+        # print(f"{self.user_id == other.user_id=}")
+        # print(f"{self.comment_id == other.comment_id=}")
+        return self.is_on() == other.is_on() \
+               and self.user_id == other.user_id \
+               and self.comment_id == other.comment_id
+
 
 class Favorite:
     @classmethod
-    async def get(cls, pool: Connection, user_id: int, comment_id: str):
-        query = f"SELECT" \
-                f"( SELECT COUNT(*) FROM favorites WHERE user_id = {user_id} " \
-                f"and comment_id = '{comment_id}' ) AS is_on;"
+    async def get(cls, user_id: int, comment_id: str, pool: Connection):
+        query = f"SELECT COUNT(*) as is_on FROM favorites WHERE user_id = {user_id} " \
+                f"and comment_id = '{comment_id}';"
 
         result = await pool.fetch(query)
         if result[0][0] == 0:
-            favorite_state = FavoriteOff(user_id, comment_id, False, pool)
+            favorite_state = FavoriteOff(user_id, comment_id, pool)
         elif result[0][0] == 1:
-            favorite_state = FavoriteOn(user_id, comment_id, True, pool)
+            favorite_state = FavoriteOn(user_id, comment_id, pool)
         else:
             raise Exception(f"Unresolved quantity in favorites where {user_id=} and {comment_id=}")
         return Favorite(favorite_state)
@@ -46,27 +50,34 @@ class Favorite:
         self.favorite = await self.favorite.switch()
 
     def is_on(self):
-        return self.favorite.is_on
+        return self.favorite.is_on()
 
-    def is_off(self):
-        return not self.favorite.is_off
+    def __eq__(self, other):
+        # print(f"debug in Favorite: {type(other)=}")
+        return self.favorite == other.favorite
 
 
 class FavoriteOn(FavoriteState):
+
+    def is_on(self):
+        return True
+
     async def switch(self):
         query = f"DELETE FROM favorites WHERE user_id = {self.user_id} " \
-                f"AND comment_id = '{self.comment_id}'"
+                f"AND comment_id = '{self.comment_id}';"
 
         await self.pool.fetch(query)
-        self.is_on = False
-        return FavoriteOff(self.user_id, self.comment_id, self.is_on, self.pool)
+        return FavoriteOff(self.user_id, self.comment_id, self.pool)
 
 
 class FavoriteOff(FavoriteState):
+
+    def is_on(self):
+        return False
+
     async def switch(self):
         query = f"INSERT INTO favorites (user_id, comment_id) values " \
-                f"({self.user_id}, '{self.comment_id}')"
+                f"({self.user_id}, '{self.comment_id}');"
 
         await self.pool.fetch(query)
-        self.is_on = True
-        return FavoriteOn(self.user_id, self.comment_id, self.is_on, self.pool)
+        return FavoriteOn(self.user_id, self.comment_id, self.pool)
