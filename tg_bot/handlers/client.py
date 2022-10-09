@@ -54,9 +54,9 @@ async def show_comments_by_topic(callback):
                           user_id=user_id,
                           comment_id=comment_id)
 
-    favorite = await Favorite.get(pool=pool,
-                                  user_id=user_id,
-                                  comment_id=comment_id)
+    favorite = await Favorite.get(user_id=user_id,
+                                  comment_id=comment_id,
+                                  pool=pool)
 
     markup = get_comment_markup(comment=comments[0].get_sentence(),
                                 comment_id=comment_id,
@@ -112,9 +112,9 @@ async def like_callback_handler(callback, state=FSMContext):
 
     await like.switch()
 
-    favorite = await Favorite.get(pool=pool,
-                                  user_id=user_id,
-                                  comment_id=comment_id)
+    favorite = await Favorite.get(user_id=user_id,
+                                  comment_id=comment_id,
+                                  pool=pool)
 
     markup = get_comment_markup(ElasticSearcher.get_comment_by_id(comment_id).get_sentence(),
                                 comment_id,
@@ -134,9 +134,9 @@ async def favorite_callback_handler(callback, state=FSMContext):
                           user_id=user_id,
                           comment_id=comment_id)
 
-    favorite = await Favorite.get(pool=pool,
-                                  user_id=user_id,
-                                  comment_id=comment_id)
+    favorite = await Favorite.get(user_id=user_id,
+                                  comment_id=comment_id,
+                                  pool=pool)
     await favorite.switch()
 
     markup = get_comment_markup(ElasticSearcher.get_comment_by_id(comment_id).get_sentence(),

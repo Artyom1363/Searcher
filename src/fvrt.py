@@ -16,10 +16,6 @@ class FavoriteState:
         pass
 
     def __eq__(self, other) -> bool:
-        # print(f"debug in FavoriteState:{type(other)=}")
-        # print(f"{self.on == other.on=}")
-        # print(f"{self.user_id == other.user_id=}")
-        # print(f"{self.comment_id == other.comment_id=}")
         return self.is_on() == other.is_on() \
                and self.user_id == other.user_id \
                and self.comment_id == other.comment_id
@@ -53,7 +49,6 @@ class Favorite:
         return self.favorite.is_on()
 
     def __eq__(self, other):
-        # print(f"debug in Favorite: {type(other)=}")
         return self.favorite == other.favorite
 
 
