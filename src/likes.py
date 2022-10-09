@@ -10,17 +10,17 @@ class LikeState:
         self.total_likes = total_likes
         self.pool = pool
 
-    def is_on(self):
+    def is_on(self) -> bool:
         pass
 
     async def switch(self):
         pass
 
     def __eq__(self, other):
-        return self.is_on() == other.is_on() \
-               and self.user_id == other.user_id \
-               and self.comment_id == other.comment_id \
-               and self.total_likes == other.total_likes
+        return all([self.is_on() == other.is_on(),
+                    self.user_id == other.user_id,
+                    self.comment_id == other.comment_id,
+                    self.total_likes == other.total_likes])
 
 
 class Like:
@@ -44,16 +44,16 @@ class Like:
     def __init__(self, like: LikeState):
         self.like = like
 
-    def set_current(self, like: LikeState):
+    def set_current(self, like: LikeState) -> None:
         self.like = like
 
-    async def switch(self):
+    async def switch(self) -> None:
         self.like = await self.like.switch()
 
-    def is_on(self):
+    def is_on(self) -> bool:
         return self.like.is_on()
 
-    def get_total_likes(self):
+    def get_total_likes(self) -> int:
         return self.like.total_likes
 
     def __eq__(self, other):
@@ -62,10 +62,10 @@ class Like:
 
 class LikeOn(LikeState):
 
-    def is_on(self):
+    def is_on(self) -> bool:
         return True
 
-    async def switch(self):
+    async def switch(self) -> LikeState:
         query = f"DELETE FROM likes WHERE user_id = {self.user_id} " \
                 f"AND comment_id = '{self.comment_id}';"
 
@@ -77,10 +77,10 @@ class LikeOn(LikeState):
 
 class LikeOff(LikeState):
 
-    def is_on(self):
+    def is_on(self) -> bool:
         return False
 
-    async def switch(self):
+    async def switch(self) -> LikeState:
         query = f"INSERT INTO likes (user_id, comment_id) VALUES " \
                 f"({self.user_id}, '{self.comment_id}');"
 

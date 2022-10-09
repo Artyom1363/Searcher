@@ -3,7 +3,7 @@ from data_types.values import Value
 
 class Post:
 
-    def __init__(self, key: str = None, values : list[Value] = []):
+    def __init__(self, key: str = None, values: list[Value] = []):
         self.values = values
         self.key = key
 

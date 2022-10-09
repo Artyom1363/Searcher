@@ -16,9 +16,9 @@ class FavoriteState:
         pass
 
     def __eq__(self, other) -> bool:
-        return self.is_on() == other.is_on() \
-               and self.user_id == other.user_id \
-               and self.comment_id == other.comment_id
+        return all([self.is_on() == other.is_on(),
+                    self.user_id == other.user_id,
+                    self.comment_id == other.comment_id])
 
 
 class Favorite:
@@ -41,13 +41,13 @@ class Favorite:
     def __init__(self, favorite: FavoriteState):
         self.favorite = favorite
 
-    def set_current(self, favorite: FavoriteState):
+    def set_current(self, favorite: FavoriteState) -> None:
         self.favorite = favorite
 
-    async def switch(self):
+    async def switch(self) -> None:
         self.favorite = await self.favorite.switch()
 
-    def is_on(self):
+    def is_on(self) -> bool:
         return self.favorite.is_on()
 
     def __eq__(self, other):
@@ -56,10 +56,10 @@ class Favorite:
 
 class FavoriteOn(FavoriteState):
 
-    def is_on(self):
+    def is_on(self) -> bool:
         return True
 
-    async def switch(self):
+    async def switch(self) -> FavoriteState:
         query = f"DELETE FROM favorites WHERE user_id = {self.user_id} " \
                 f"AND comment_id = '{self.comment_id}';"
 
@@ -69,10 +69,10 @@ class FavoriteOn(FavoriteState):
 
 class FavoriteOff(FavoriteState):
 
-    def is_on(self):
+    def is_on(self) -> bool:
         return False
 
-    async def switch(self):
+    async def switch(self) -> FavoriteState:
         query = f"INSERT INTO favorites (user_id, comment_id) VALUES " \
                 f"({self.user_id}, '{self.comment_id}');"
 
