@@ -26,10 +26,11 @@ class LikeState:
 class Like:
     @classmethod
     async def get(cls, user_id: int, comment_id: str, pool: Connection):
-        query = f"SELECT" \
-                f"(SELECT COUNT(*) FROM likes WHERE comment_id = '{comment_id}') AS total," \
+        query = f"SELECT " \
+                f"(SELECT COUNT(*) FROM likes WHERE comment_id = " \
+                f"'{comment_id}') AS total," \
                 f"(SELECT COUNT(*) FROM likes WHERE user_id = {user_id} " \
-                f"and comment_id = '{comment_id}' ) AS personal;"
+                f"AND comment_id = '{comment_id}' ) AS personal;"
 
         result = await pool.fetch(query)
         if result[0][1] == 0:
@@ -70,7 +71,8 @@ class LikeOn(LikeState):
 
         await self.pool.fetch(query)
         self.total_likes -= 1
-        return LikeOff(self.user_id, self.comment_id, self.total_likes, self.pool)
+        return LikeOff(self.user_id, self.comment_id,
+                       self.total_likes, self.pool)
 
 
 class LikeOff(LikeState):
@@ -79,9 +81,10 @@ class LikeOff(LikeState):
         return False
 
     async def switch(self):
-        query = f"INSERT INTO likes (user_id, comment_id) values " \
+        query = f"INSERT INTO likes (user_id, comment_id) VALUES " \
                 f"({self.user_id}, '{self.comment_id}');"
 
         await self.pool.fetch(query)
         self.total_likes += 1
-        return LikeOn(self.user_id, self.comment_id, self.total_likes, self.pool)
+        return LikeOn(self.user_id, self.comment_id,
+                      self.total_likes, self.pool)

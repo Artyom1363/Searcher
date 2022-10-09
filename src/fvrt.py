@@ -24,8 +24,9 @@ class FavoriteState:
 class Favorite:
     @classmethod
     async def get(cls, user_id: int, comment_id: str, pool: Connection):
-        query = f"SELECT COUNT(*) as is_on FROM favorites WHERE user_id = {user_id} " \
-                f"and comment_id = '{comment_id}';"
+        query = f"SELECT COUNT(*) as is_on FROM favorites " \
+                f"WHERE user_id = {user_id} " \
+                f"AND comment_id = '{comment_id}';"
 
         result = await pool.fetch(query)
         if result[0][0] == 0:
@@ -33,7 +34,8 @@ class Favorite:
         elif result[0][0] == 1:
             favorite_state = FavoriteOn(user_id, comment_id, pool)
         else:
-            raise Exception(f"Unresolved quantity in favorites where {user_id=} and {comment_id=}")
+            raise Exception(f"Unresolved quantity in favorites "
+                            f"where {user_id=} and {comment_id=}")
         return Favorite(favorite_state)
 
     def __init__(self, favorite: FavoriteState):
@@ -71,7 +73,7 @@ class FavoriteOff(FavoriteState):
         return False
 
     async def switch(self):
-        query = f"INSERT INTO favorites (user_id, comment_id) values " \
+        query = f"INSERT INTO favorites (user_id, comment_id) VALUES " \
                 f"({self.user_id}, '{self.comment_id}');"
 
         await self.pool.fetch(query)
