@@ -1,5 +1,3 @@
-from typing import Any
-
 from aiogram import types
 from aiogram.dispatcher import Dispatcher
 from aiogram.dispatcher import FSMContext
@@ -15,7 +13,7 @@ from data_types.values import Sentence
 from data_types.post import Post
 
 from src import Like, Favorite
-from src.pg import pool
+from functools import partial
 
 
 # @dp.message_handler(commands=['start', 'help'])
@@ -39,7 +37,7 @@ async def show_topic(callback):
     await callback.answer(f"{topic[0:200]}", show_alert=True)
 
 
-async def show_comments_by_topic(callback):
+async def show_comments_by_topic(callback, pool=None):
     _type, _id = callback.data.split('_')
     user_id = callback.message.chat.id
     assert (_type == 'question')
@@ -103,7 +101,7 @@ async def search(message: types.Message, state: FSMContext):
         await message.answer("Вот что нам удалось найти", reply_markup=markup, parse_mode='Markdown')
 
 
-async def like_callback_handler(callback, state=FSMContext):
+async def like_callback_handler(callback, state=FSMContext, pool=None):
     _type, comment_id = callback.data.split('_')
     user_id = callback.message.chat.id
     like = await Like.get(pool=pool,
@@ -127,7 +125,7 @@ async def like_callback_handler(callback, state=FSMContext):
                                      parse_mode='Markdown')
 
 
-async def favorite_callback_handler(callback, state=FSMContext):
+async def favorite_callback_handler(callback, state=FSMContext, pool=None):
     _type, comment_id = callback.data.split('_')
     user_id = callback.message.chat.id
     like = await Like.get(pool=pool,
@@ -156,7 +154,10 @@ async def default_callback_handler(callback, state=FSMContext):
     await callback.answer(f"Пока что не существует обработчика, search_value={search_values}", show_alert=True)
 
 
-def register_handlers_client(dp: Dispatcher):
+def register_handlers_client(dp: Dispatcher, pool_):
+    show_comments_by_topic_partial = partial(show_comments_by_topic, pool=pool_)
+    like_callback_handler_partial = partial(like_callback_handler, pool=pool_)
+    favorite_callback_handler_partial = partial(favorite_callback_handler, pool=pool_)
     dp.register_message_handler(send_welcome,
                                 commands=['start', 'help'],
                                 state=[None, UserState.search])
@@ -165,7 +166,7 @@ def register_handlers_client(dp: Dispatcher):
                                        lambda call: call.data.startswith("questionScale_"),
                                        state=[None, UserState.search])
 
-    dp.register_callback_query_handler(show_comments_by_topic,
+    dp.register_callback_query_handler(show_comments_by_topic_partial,
                                        lambda call: call.data.startswith("question_"),
                                        state=[None, UserState.search])
 
@@ -177,11 +178,11 @@ def register_handlers_client(dp: Dispatcher):
                                        lambda call: call.data == 'selfAns',
                                        state=[None, UserState.search])
 
-    dp.register_callback_query_handler(like_callback_handler,
+    dp.register_callback_query_handler(like_callback_handler_partial,
                                        lambda call: call.data.startswith('like_'),
                                        state=[None, UserState.search])
 
-    dp.register_callback_query_handler(favorite_callback_handler,
+    dp.register_callback_query_handler(favorite_callback_handler_partial,
                                        lambda call: call.data.startswith('favorite_'),
                                        state=[None, UserState.search])
 
