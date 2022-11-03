@@ -1,11 +1,12 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from typing import List, Tuple
 
 
 def get_search_record_button(topic: str, id_: str) -> InlineKeyboardButton:
     return InlineKeyboardButton(text=topic, callback_data=f'question_{id_}')
 
 
-def get_relevant_topics_keyboard(records: list[tuple[str, str]]) -> InlineKeyboardMarkup:
+def get_relevant_topics_keyboard(records: List[Tuple[str, str]]) -> InlineKeyboardMarkup:
     markup = InlineKeyboardMarkup()
     counter = 1
     buttons_loop = []

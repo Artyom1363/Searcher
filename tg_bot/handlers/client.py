@@ -5,7 +5,7 @@ from aiogram.dispatcher import Dispatcher
 from aiogram.dispatcher import FSMContext
 
 from tg_bot.config import USER_GUIDE, VIDEO_GUIDE
-from tg_bot.keyboards.keyboards import get_relevant_topics_keyboard, get_comment_markup
+from tg_bot.keyboards import get_relevant_topics_keyboard, get_comment_markup
 from tg_bot.create_bot import bot
 from tg_bot.states import UserState
 
