@@ -1,12 +1,13 @@
 import asyncpg
 import asyncio
-from .pg_config import *
+from src.pg.pg_config import *
 
 
 async def create_db():
 
-    create_db_command = open("docker-entrypoint-initdb.d/create_user_info.sql", "r").read()
+    create_db_command = open("databases/docker-entrypoint-initdb.d/create_user_info.sql", "r").read()
     print("creating db")
+    print(f"{create_db_command=}")
     conn: asyncpg.Connection = await asyncpg.connect(
         host=HOST,
         user=PG_USER,
