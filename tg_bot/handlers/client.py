@@ -7,7 +7,7 @@ from tg_bot.keyboards import get_relevant_topics_keyboard, get_comment_markup
 from tg_bot.create_bot import bot
 from tg_bot.states import UserState
 
-from src.search import ElasticSearcher
+from src.search import ElasticSearcher, Searcher
 
 from src.data_types import Sentence
 from src.data_types import Post

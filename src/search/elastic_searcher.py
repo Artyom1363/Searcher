@@ -8,7 +8,6 @@ from elasticsearch.exceptions import NotFoundError
 from typing import List, Tuple
 
 from src.search.config import USER, ELASTIC_PASSWORD, PATH_TO_CRT, ELASTIC_URL
-from src.search import Searcher
 
 from src.data_types.values import Value, Sentence
 from src.data_types.post import Post
@@ -116,7 +115,7 @@ class Topic(Document):
         return super().save(**kwargs)
 
 
-class ElasticSearcher(Searcher):
+class ElasticSearcher:
     elastic_value_creators = [ElasticSentenceCreator]
 
     @classmethod

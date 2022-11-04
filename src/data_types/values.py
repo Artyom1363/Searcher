@@ -1,7 +1,7 @@
 from abc import abstractmethod, ABCMeta
 
 
-class Value(metaclass=ABCMeta):
+class ValueUnsaved(metaclass=ABCMeta):
     @abstractmethod
     def get_type(self) -> str:
         pass
@@ -10,6 +10,8 @@ class Value(metaclass=ABCMeta):
     def get_info(self) -> dict:
         pass
 
+
+class Value(ValueUnsaved):
     @abstractmethod
     def get_id(self) -> str:
         pass
