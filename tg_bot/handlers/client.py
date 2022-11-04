@@ -7,12 +7,10 @@ from tg_bot.keyboards import get_relevant_topics_keyboard, get_comment_markup
 from tg_bot.create_bot import bot
 from tg_bot.states import UserState
 
-from src.search import ElasticSearcher, Searcher
+from src.search import Searcher
 
 from src.data_types import Sentence
-from src.data_types import Post
 
-from src.data_types import Like, Favorite
 from functools import partial
 
 
@@ -33,35 +31,23 @@ async def show_topic(callback):
     _type, _id = callback.data.split('_', 1)
     assert (_type == 'questionScale')
 
-    topic = ElasticSearcher.get_topic_by_id(_id)
+    topic = Searcher.get_topic_by_id(_id)
     await callback.answer(f"{topic[0:200]}", show_alert=True)
 
 
 async def show_comments_by_topic(callback, pool=None):
-    _type, _id = callback.data.split('_', 1)
+    _type, topic_id = callback.data.split('_', 1)
     user_id = callback.message.chat.id
     assert (_type == 'question')
-    topic = ElasticSearcher.get_topic_by_id(_id)
-    comments = ElasticSearcher.get_comments_by_topic_id(_id, limit=1)
-    comment_id = comments[0].get_id()
+
+    topic = Searcher.get_topic_by_id(topic_id)
+    comments = await Searcher.get_comments_by_topic_id(topic_id, user_id, pool, limit=1)
+
     if len(comments) == 0:
         await callback.answer(f"По данной теме все комментарии удалены", show_alert=True)
         return
 
-    like = await Like.get(pool=pool,
-                          user_id=user_id,
-                          comment_id=comment_id)
-
-    favorite = await Favorite.get(user_id=user_id,
-                                  comment_id=comment_id,
-                                  pool=pool)
-
-    markup = get_comment_markup(comment=comments[0].get_sentence(),
-                                comment_id=comment_id,
-                                likes=like.get_total_likes(),
-                                liked=like.is_on(),
-                                favorite=favorite.is_on())
-
+    markup = get_comment_markup(comment=comments[0])
     await bot.send_message(user_id,
                            text=f'Сейчас вы видите комментарии пользователей на вопрос: *{topic}*',
                            reply_markup=markup,
@@ -78,22 +64,17 @@ async def self_ans_callback_handler(callback, state=FSMContext):
 async def self_answer_text_message(message: types.Message, state=FSMContext):
     sentence = Sentence(sentence=message.text)
     search_values = await state.get_data()
-    post = Post(
-        topic=search_values.get('search'),
-        values=[sentence])
 
-    ElasticSearcher.add_record(post)
+    Searcher.add_record(topic=search_values.get('search'), value=sentence)
 
     await message.answer("Спасибо вы добавили ответ на свой вопрос.")
     await UserState.search.set()
 
 
 async def search(message: types.Message, state: FSMContext):
-    # old style:
-    # await bot.send_message(message.chat.id, message.text)
     await state.update_data(search=message.text)
 
-    relevant = ElasticSearcher.get_relevant_topics(message=message.text)
+    relevant = Searcher.get_relevant_topics(message=message.text)
     if len(relevant) == 0:
         await message.answer("К сожалению по вашему запросу нам ничего не удалось найти!")
     else:
@@ -104,21 +85,9 @@ async def search(message: types.Message, state: FSMContext):
 async def like_callback_handler(callback, state=FSMContext, pool=None):
     _type, comment_id = callback.data.split('_', 1)
     user_id = callback.message.chat.id
-    like = await Like.get(pool=pool,
-                          user_id=user_id,
-                          comment_id=comment_id)
-
-    await like.switch()
-
-    favorite = await Favorite.get(user_id=user_id,
-                                  comment_id=comment_id,
-                                  pool=pool)
-
-    markup = get_comment_markup(ElasticSearcher.get_comment_by_id(comment_id).get_sentence(),
-                                comment_id,
-                                likes=like.get_total_likes(),
-                                liked=like.is_on(),
-                                favorite=favorite.is_on())
+    comment = await Searcher.get_comment_by_id(comment_id=comment_id, user_id=user_id, pool=pool)
+    await comment.get_like().switch()
+    markup = get_comment_markup(comment)
 
     await callback.message.edit_text(text=callback.message.text,
                                      reply_markup=markup,
@@ -128,20 +97,10 @@ async def like_callback_handler(callback, state=FSMContext, pool=None):
 async def favorite_callback_handler(callback, state=FSMContext, pool=None):
     _type, comment_id = callback.data.split('_', 1)
     user_id = callback.message.chat.id
-    like = await Like.get(pool=pool,
-                          user_id=user_id,
-                          comment_id=comment_id)
 
-    favorite = await Favorite.get(user_id=user_id,
-                                  comment_id=comment_id,
-                                  pool=pool)
-    await favorite.switch()
-
-    markup = get_comment_markup(ElasticSearcher.get_comment_by_id(comment_id).get_sentence(),
-                                comment_id,
-                                likes=like.get_total_likes(),
-                                liked=like.is_on(),
-                                favorite=favorite.is_on())
+    comment = await Searcher.get_comment_by_id(comment_id=comment_id, user_id=user_id, pool=pool)
+    await comment.get_favorite().switch()
+    markup = get_comment_markup(comment)
 
     await callback.message.edit_text(text=callback.message.text,
                                      reply_markup=markup,

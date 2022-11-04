@@ -19,5 +19,8 @@ class Comment:
     def get_favorite(self):
         return self.favorite
 
+    def get_id(self):
+        return self.value.get_id()
+
     def __lt__(self, other):
         return self.like.get_total_likes() < other.like.get_total_likes()

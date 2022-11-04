@@ -1,5 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from typing import List, Tuple
+from src.data_types import Comment
 
 
 def get_search_record_button(topic: str, id_: str) -> InlineKeyboardButton:
@@ -25,11 +26,12 @@ def get_relevant_topics_keyboard(records: List[Tuple[str, str]]) -> InlineKeyboa
     return markup
 
 
-def get_comment_markup(comment: str,
-                       comment_id: str,
-                       likes: int = 0,
-                       liked: bool = False,
-                       favorite: bool = False) -> InlineKeyboardMarkup:
+def get_comment_markup(comment: Comment) -> InlineKeyboardMarkup:
+    liked = comment.get_like().is_on()
+    likes = comment.get_like().get_total_likes()
+    comment_id = comment.get_id()
+    favorite = comment.get_favorite().is_on()
+    comment_text = comment.get_value().get_sentence()
 
     if liked:
         like_expose = str(likes) + "❤️"
@@ -48,7 +50,7 @@ def get_comment_markup(comment: str,
     button_after = InlineKeyboardButton(text='➡️',
                                         callback_data=f'next_{comment_id}')
 
-    button_comment = InlineKeyboardButton(text=comment,
+    button_comment = InlineKeyboardButton(text=comment_text,
                                           callback_data=f'comment_{comment_id}')
 
     if favorite:
