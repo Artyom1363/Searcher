@@ -111,16 +111,33 @@ async def favorite_callback_handler(callback, state=FSMContext, pool=None):
                                      parse_mode='Markdown')
 
 
+async def next_comment_callback_handler(callback, state=FSMContext, pool=None):
+    # print(f"next_comment_callback_handler called")
+    _type, comment_id = callback.data.split('_', 1)
+    user_id = callback.message.chat.id
+
+    comment = await Searcher.get_next_comment(comment_id=comment_id, user_id=user_id, pool=pool)
+    if comment is None:
+        await callback.answer(f"Вы просмотрели все комментарии!", show_alert=True)
+        return
+
+    markup = get_comment_markup(comment)
+    await callback.message.edit_text(text=callback.message.text,
+                                     reply_markup=markup,
+                                     parse_mode='Markdown')
+
+
 async def default_callback_handler(callback, state=FSMContext):
     search_values = await state.get_data()
     print(f"{callback.data.split('_', 1)=}")
     await callback.answer(f"Пока что не существует обработчика, search_value={search_values}", show_alert=True)
 
 
-def register_handlers_client(dp: Dispatcher, pool_):
-    show_comments_by_topic_partial = partial(show_comments_by_topic, pool=pool_)
-    like_callback_handler_partial = partial(like_callback_handler, pool=pool_)
-    favorite_callback_handler_partial = partial(favorite_callback_handler, pool=pool_)
+def register_handlers_client(dp: Dispatcher, pool):
+    show_comments_by_topic_partial = partial(show_comments_by_topic, pool=pool)
+    like_callback_handler_partial = partial(like_callback_handler, pool=pool)
+    favorite_callback_handler_partial = partial(favorite_callback_handler, pool=pool)
+    next_comment_callback_handler_partial = partial(next_comment_callback_handler, pool=pool)
     dp.register_message_handler(send_welcome,
                                 commands=['start', 'help'],
                                 state=[None, UserState.search])
@@ -147,6 +164,10 @@ def register_handlers_client(dp: Dispatcher, pool_):
 
     dp.register_callback_query_handler(favorite_callback_handler_partial,
                                        lambda call: call.data.startswith('favorite_'),
+                                       state=[None, UserState.search])
+
+    dp.register_callback_query_handler(next_comment_callback_handler_partial,
+                                       lambda call: call.data.startswith('next_'),
                                        state=[None, UserState.search])
 
     dp.register_callback_query_handler(default_callback_handler,
