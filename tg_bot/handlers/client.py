@@ -7,12 +7,12 @@ from tg_bot.keyboards import get_relevant_topics_keyboard, get_comment_markup
 from tg_bot.create_bot import bot
 from tg_bot.states import UserState
 
-from search.elastic_searcher import ElasticSearcher
+from src.search import ElasticSearcher
 
-from data_types.values import Sentence
-from data_types.post import Post
+from src.data_types import Sentence
+from src.data_types import Post
 
-from src import Like, Favorite
+from src.data_types import Like, Favorite
 from functools import partial
 
 
@@ -30,7 +30,7 @@ async def send_welcome(message: types.Message):
 
 async def show_topic(callback):
     # Вы нажали на кнопку и сработал call back handler
-    _type, _id = callback.data.split('_')
+    _type, _id = callback.data.split('_', 1)
     assert (_type == 'questionScale')
 
     topic = ElasticSearcher.get_topic_by_id(_id)
@@ -38,7 +38,7 @@ async def show_topic(callback):
 
 
 async def show_comments_by_topic(callback, pool=None):
-    _type, _id = callback.data.split('_')
+    _type, _id = callback.data.split('_', 1)
     user_id = callback.message.chat.id
     assert (_type == 'question')
     topic = ElasticSearcher.get_topic_by_id(_id)
@@ -102,7 +102,7 @@ async def search(message: types.Message, state: FSMContext):
 
 
 async def like_callback_handler(callback, state=FSMContext, pool=None):
-    _type, comment_id = callback.data.split('_')
+    _type, comment_id = callback.data.split('_', 1)
     user_id = callback.message.chat.id
     like = await Like.get(pool=pool,
                           user_id=user_id,
@@ -126,7 +126,7 @@ async def like_callback_handler(callback, state=FSMContext, pool=None):
 
 
 async def favorite_callback_handler(callback, state=FSMContext, pool=None):
-    _type, comment_id = callback.data.split('_')
+    _type, comment_id = callback.data.split('_', 1)
     user_id = callback.message.chat.id
     like = await Like.get(pool=pool,
                           user_id=user_id,

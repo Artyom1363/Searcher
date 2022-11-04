@@ -7,7 +7,7 @@ from tg_bot.handlers import show_topic
 class TestTGBot(unittest.IsolatedAsyncioTestCase):
 
     async def test_show_topic(self):
-        with mock.patch("search.elastic_searcher.ElasticSearcher.get_topic_by_id") as get_topic_mock:
+        with mock.patch("src.search.ElasticSearcher.get_topic_by_id") as get_topic_mock:
             get_topic_mock.return_value = "some string"
             callback = AsyncMock()
             callback.data = "questionScale_123"

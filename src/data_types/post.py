@@ -1,9 +1,11 @@
-from data_types.values import Value
+from typing import List
+
+from src.data_types.values import Value
 
 
 class Post:
 
-    def __init__(self, key: str = None, values: list[Value] = []):
+    def __init__(self, key: str = None, values: List[Value] = []):
         self.values = values
         self.key = key
 
@@ -16,7 +18,7 @@ class Post:
     def get_key(self) -> str:
         return self.key
 
-    def get_values(self) -> list[Value]:
+    def get_values(self) -> List[Value]:
         return self.values
 
     def get_id(self) -> str:

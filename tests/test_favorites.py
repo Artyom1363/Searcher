@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 from unittest.mock import AsyncMock
-from src.fvrt import Favorite, FavoriteOn, FavoriteOff
+from src.data_types.fvrt import Favorite, FavoriteOn, FavoriteOff
 
 
 class TestFavorites(unittest.IsolatedAsyncioTestCase):

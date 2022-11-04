@@ -1,5 +1,7 @@
-from data_types.values import Value
-from data_types.post import Post
+from typing import List
+
+from src.data_types.values import Value
+from src.data_types.post import Post
 
 
 class Searcher:
@@ -13,5 +15,5 @@ class Searcher:
         pass
 
     @classmethod
-    def get_relevant(cls, message: str) -> list[Post]:
+    def get_relevant(cls, message: str) -> List[Post]:
         pass

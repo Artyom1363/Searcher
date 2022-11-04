@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 from unittest.mock import AsyncMock
-from src.likes import Like, LikeOn, LikeOff
+from src.data_types.likes import Like, LikeOn, LikeOff
 
 
 class TestLikes(unittest.IsolatedAsyncioTestCase):

@@ -5,12 +5,13 @@ from elasticsearch_dsl import Document, Date, Nested, Boolean, Index
 from elasticsearch_dsl import analyzer, Completion, Keyword, Text, Search
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import NotFoundError
+from typing import List, Tuple
 
-from search.config import USER, ELASTIC_PASSWORD, PATH_TO_CRT, ELASTIC_URL
-from search.searcher import Searcher
+from src.search.config import USER, ELASTIC_PASSWORD, PATH_TO_CRT, ELASTIC_URL
+from src.search import Searcher
 
-from data_types.values import Value, Sentence
-from data_types.post import Post
+from src.data_types.values import Value, Sentence
+from src.data_types.post import Post
 
 client = Elasticsearch(
     ELASTIC_URL,
@@ -137,7 +138,7 @@ class ElasticSearcher(Searcher):
                             message: str,
                             using=client,
                             index_topics: str = "topics",
-                            limit: int = 3) -> list[tuple[str, str]]:
+                            limit: int = 3) -> List[Tuple[str, str]]:
         response = Search(index=index_topics, using=using).query("match", title=message).execute()
         topics = []
         hits_counter = 0
@@ -153,7 +154,7 @@ class ElasticSearcher(Searcher):
                                  id_: str = None,
                                  using=client,
                                  index_comments: str = "comments",
-                                 limit: int = 3) -> list[Value]:
+                                 limit: int = 3) -> List[Value]:
         response = Search(index=index_comments, using=using).query("match", topic_id=id_).execute()
         comments = []
         hits_counter = 0

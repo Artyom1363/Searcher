@@ -1,13 +1,13 @@
 import unittest
 import inspect
 
-import search.elastic_searcher
-from search.elastic_searcher import ElasticSearcher, ElasticValueCreator
-from search.config import USER, ELASTIC_PASSWORD, PATH_TO_CRT, ELASTIC_URL
+import src.search.elastic_searcher
+from src.search.elastic_searcher import ElasticSearcher, ElasticValueCreator
+from src.search.config import USER, ELASTIC_PASSWORD, PATH_TO_CRT, ELASTIC_URL
 
-import data_types.values
-from data_types.values import Sentence, Value
-from data_types.post import Post
+import src.data_types.values
+from src.data_types import Sentence, Value
+from src.data_types import Post
 
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search
@@ -127,17 +127,17 @@ class TestCreatorsCompleteness(unittest.TestCase):
     This test checks that quantity of classes inherited from Value equal to classes inherited from ElasticValueCreator
     """
     def test_creators_completeness(self):
-        data_types_insides = dir(data_types.values)
+        data_types_insides = dir(src.data_types.values)
         count_types = 0
         for elem in data_types_insides:
-            elem = getattr(data_types.values, elem)
+            elem = getattr(src.data_types.values, elem)
             if inspect.isclass(elem) and issubclass(elem, Value):
                 count_types += 1
 
-        elastic_searcher_insides = dir(search.elastic_searcher)
+        elastic_searcher_insides = dir(src.search.elastic_searcher)
         count_creators = 0
         for elem in elastic_searcher_insides:
-            elem = getattr(search.elastic_searcher, elem)
+            elem = getattr(src.search.elastic_searcher, elem)
             if inspect.isclass(elem) and issubclass(elem, ElasticValueCreator):
                 count_creators += 1
 
