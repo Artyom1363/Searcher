@@ -79,7 +79,7 @@ async def self_answer_text_message(message: types.Message, state=FSMContext):
     sentence = Sentence(sentence=message.text)
     search_values = await state.get_data()
     post = Post(
-        key=search_values.get('search'),
+        topic=search_values.get('search'),
         values=[sentence])
 
     ElasticSearcher.add_record(post)

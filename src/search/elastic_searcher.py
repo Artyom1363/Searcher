@@ -121,7 +121,7 @@ class ElasticSearcher(Searcher):
 
     @classmethod
     def add_record(cls, post: Post = None, using=client, index_topic: str = None, index_comments: str = None):
-        topic = Topic(title=post.get_key())
+        topic = Topic(title=post.get_topic())
         meta_info = topic.save(using=client, return_doc_meta=True, index=index_topic)
         id_ = meta_info['_id']
         for value in post.get_values():

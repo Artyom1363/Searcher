@@ -41,7 +41,7 @@ class TestElasticAlgo(unittest.TestCase):
     def test_adding_record(self):
         sentence1 = Sentence(sentence="test value")
         sentence2 = Sentence(sentence="test value2")
-        post = Post(key="test key", values=[sentence1, sentence2])
+        post = Post(topic="test key", values=[sentence1, sentence2])
 
         # adding data
         ElasticSearcher.add_record(post, index_topic=self.index_topic, index_comments=self.index_comments)
@@ -73,7 +73,7 @@ class TestElasticAlgo(unittest.TestCase):
 
     def test_getting_relevant(self):
         sentence1 = Sentence(sentence="Ответ к тесту")
-        post = Post(key="тесты по физике", values=[sentence1])
+        post = Post(topic="тесты по физике", values=[sentence1])
 
         # adding data
         ElasticSearcher.add_record(post, index_topic=self.index_topic, index_comments=self.index_comments)
