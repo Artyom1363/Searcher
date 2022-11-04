@@ -42,7 +42,11 @@ async def show_comments_by_topic(callback, pool=None):
 
     topic = Searcher.get_topic_by_id(topic_id)
     comments = await Searcher.get_comments_by_topic_id(topic_id, user_id, pool, limit=1)
-
+    # #TODO DELETE
+    # await Searcher.get_next_comment('NymVeIIBsfiF7pzVvSTM', user_id=user_id, pool=pool)
+    # print(f"{topic_id=}")
+    # print(f"{comments[0].get_topic_id()=}")
+    # #
     if len(comments) == 0:
         await callback.answer(f"По данной теме все комментарии удалены", show_alert=True)
         return
@@ -109,7 +113,7 @@ async def favorite_callback_handler(callback, state=FSMContext, pool=None):
 
 async def default_callback_handler(callback, state=FSMContext):
     search_values = await state.get_data()
-
+    print(f"{callback.data.split('_', 1)=}")
     await callback.answer(f"Пока что не существует обработчика, search_value={search_values}", show_alert=True)
 
 

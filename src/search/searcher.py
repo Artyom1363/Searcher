@@ -30,9 +30,12 @@ class Searcher:
         comments = []
         values = ElasticSearcher.get_comments_by_topic_id(id_=topic_id)
         for value in values:
-            like = await Like.get(user_id=user_id, comment_id=value.get_id(), pool=pool)
+            like = await Like.get(user_id=user_id,
+                                  comment_id=value.get_id(),
+                                  topic_id=value.get_topic_id(),
+                                  pool=pool)
             favorite = await Favorite.get(user_id=user_id, comment_id=value.get_id(), pool=pool)
-            comments.append(Comment(value, like, favorite, topic_id))
+            comments.append(Comment(value, like, favorite))
         return sorted(comments)[0:limit]
 
     @classmethod
@@ -42,10 +45,46 @@ class Searcher:
     @classmethod
     async def get_comment_by_id(cls, comment_id: str, user_id: int, pool: Connection) -> Comment:
         value = ElasticSearcher.get_comment_by_id(id_=comment_id)
-        like = await Like.get(user_id=user_id, comment_id=value.get_id(), pool=pool)
+        like = await Like.get(user_id=user_id,
+                              comment_id=value.get_id(),
+                              topic_id=value.get_topic_id(),
+                              pool=pool)
         favorite = await Favorite.get(user_id=user_id, comment_id=value.get_id(), pool=pool)
         return Comment(value, like, favorite)
 
     @classmethod
-    def get_next_comment(cls, comment_id: str) -> Comment:
+    async def get_next_comment(cls, comment_id: str, user_id: int, pool: Connection) -> Comment:
+        query = f"" \
+            f"SELECT cnt, comment_id, topic_id FROM (" \
+            f"    SELECT COUNT(*) AS cnt, comment_id, topic_id" \
+            f"    FROM likes " \
+            f"    GROUP BY comment_id, topic_id" \
+            f"    ORDER BY cnt DESC, " \
+            f"    comment_id DESC " \
+            f") AS ordered " \
+            f"WHERE cnt < ( " \
+            f"    SELECT COUNT(*) AS cnt2"  \
+            f"    FROM likes " \
+            f"    WHERE comment_id='{comment_id}'" \
+            f")" \
+            f"AND topic_id = (" \
+            f"    SELECT topic_id " \
+            f"    FROM likes" \
+            f"    WHERE comment_id='{comment_id}'" \
+            f"    LIMIT 1" \
+            f")" \
+            f"LIMIT 1;"
+
+        # print(f"{query=}")
+        result = await pool.fetch(query)
+
+        if result:
+            comment_id = result[0][1]
+            comment = await cls.get_comment_by_id(comment_id=comment_id, user_id=user_id, pool=pool)
+            # print(f"{result[0]=}")
+            # print(f"{result[0][1]=}")
+            return comment
+
+    @classmethod
+    def get_prev_comment(cls, comment_id: str, user_id: int, pool: Connection) -> Comment:
         pass

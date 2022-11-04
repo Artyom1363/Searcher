@@ -16,7 +16,7 @@ class TestTGBot(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(mock.call('some string', show_alert=True),
                              callback.answer.mock_calls[0])
 
-            self.assertEqual(mock.call('123'), get_topic_mock.mock_calls[0])
+            self.assertEqual(mock.call(id_='123'), get_topic_mock.mock_calls[0])
 
 
 if __name__ == "__main__":
