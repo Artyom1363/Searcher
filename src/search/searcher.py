@@ -18,13 +18,21 @@ class Searcher:
         query = f"" \
             f"INSERT INTO likes " \
             f"(comment_id, topic_id) VALUES " \
-            f"('{meta_info[0]}', '{meta_info[1][0]}')"
+            f"('{meta_info[1][0]}', '{meta_info[0]}')"
 
         await pool.fetch(query)
 
     @classmethod
-    def append_comment_by_topic_id(cls, topic_id: str = None, value: ValueUnsaved = None) -> None:
-        ElasticSearcher.append_comment_by_id(id_=topic_id, value=value)
+    async def append_comment_by_topic_id(cls, topic_id: str, value: ValueUnsaved,
+                                         user_id: int, pool: Connection) -> None:
+        comment_id = ElasticSearcher.append_comment_by_id(id_=topic_id, value=value)
+        # print(f"{comment_id=} in append_comment_by_topic_id")
+        query = f"" \
+                f"INSERT INTO likes " \
+                f"(comment_id, topic_id) VALUES " \
+                f"('{comment_id}', '{topic_id}')"
+
+        await pool.fetch(query)
 
     @classmethod
     def get_relevant_topics(cls, message: str) -> List[Tuple[str, str]]:

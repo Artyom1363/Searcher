@@ -130,9 +130,32 @@ async def next_comment_callback_handler(callback, state=FSMContext, pool: Connec
                                      parse_mode='Markdown')
 
 
+async def additional_answer_handler(callback, state=FSMContext):
+    await bot.send_message(callback.message.chat.id, f"Введи свой комментарий ответ (это может быть текст)")
+    await UserState.additional_ans.set()
+    await state.update_data(comment_id=callback.data.split('_', 1)[1])
+
+
+async def additional_answer_text_message(message: types.Message,
+                                         state=FSMContext,
+                                         pool: Connection = None):
+    sentence = Sentence(sentence=message.text)
+    state_data = await state.get_data()
+    comment_id = state_data.get('comment_id')
+    user_id = message.chat.id
+    comment = await Searcher.get_comment_by_id(comment_id=comment_id,
+                                               user_id=user_id,
+                                               pool=pool)
+    topic_id = comment.get_topic_id()
+    await Searcher.append_comment_by_topic_id(topic_id=topic_id, value=sentence,
+                                              user_id=user_id, pool=pool)
+
+    await message.answer("Спасибо вы добавили свой ответ на вопрос.")
+    await UserState.search.set()
+
+
 async def default_callback_handler(callback, state=FSMContext):
     search_values = await state.get_data()
-    print(f"{callback.data.split('_', 1)=}")
     await callback.answer(f"Пока что не существует обработчика, search_value={search_values}", show_alert=True)
 
 
@@ -142,6 +165,8 @@ def register_handlers_client(dp: Dispatcher, pool):
     like_callback_handler_partial = partial(like_callback_handler, pool=pool)
     favorite_callback_handler_partial = partial(favorite_callback_handler, pool=pool)
     next_comment_callback_handler_partial = partial(next_comment_callback_handler, pool=pool)
+    additional_answer_text_message_partial = partial(additional_answer_text_message, pool=pool)
+
     dp.register_message_handler(send_welcome,
                                 commands=['start', 'help'],
                                 state=[None, UserState.search])
@@ -173,6 +198,14 @@ def register_handlers_client(dp: Dispatcher, pool):
     dp.register_callback_query_handler(next_comment_callback_handler_partial,
                                        lambda call: call.data.startswith('next_'),
                                        state=[None, UserState.search])
+
+    dp.register_callback_query_handler(additional_answer_handler,
+                                       lambda call: call.data.startswith('add_'),
+                                       state=[None, UserState.search])
+
+    dp.register_message_handler(additional_answer_text_message_partial,
+                                       lambda call: True,
+                                       state=UserState.additional_ans)
 
     dp.register_callback_query_handler(default_callback_handler,
                                        lambda call: True,

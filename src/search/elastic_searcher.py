@@ -9,7 +9,7 @@ from typing import List, Tuple
 
 from src.search.config import USER, ELASTIC_PASSWORD, PATH_TO_CRT, ELASTIC_URL
 
-from src.data_types.values import Value, Sentence
+from src.data_types import ValueUnsaved, Value, Sentence
 from src.data_types.post import Post
 
 client = Elasticsearch(
@@ -131,11 +131,12 @@ class ElasticSearcher:
             value_ids.append(meta_info_comment['_id'])
         return id_, value_ids
 
-
     @classmethod
-    def append_comment_by_id(cls, id_: str = None, value: Value = None, using=client, index_comments: str = None):
-        comment = Comment(author=None, topic_id=id_, **value.get_info())
-        comment.save(using=using, return_doc_meta=True, index=index_comments)
+    def append_comment_by_id(cls, id_: str, value: ValueUnsaved,
+                             using=client, index_comments: str = None) -> str:
+        comment = Comment(author=None, topic_id=id_, type=value.get_type(), **value.get_info())
+        meta_info = comment.save(using=using, return_doc_meta=True, index=index_comments)
+        return meta_info['_id']
 
     @classmethod
     def get_relevant_topics(cls,
