@@ -16,9 +16,9 @@ class Searcher:
         assert (len(meta_info) == 2)
         assert (len(meta_info[1]) == 1)
         query = f"" \
-            f"INSERT INTO likes " \
-            f"(comment_id, topic_id) VALUES " \
-            f"('{meta_info[1][0]}', '{meta_info[0]}')"
+                f"INSERT INTO likes " \
+                f"(comment_id, topic_id) VALUES " \
+                f"('{meta_info[1][0]}', '{meta_info[0]}')"
 
         await pool.fetch(query)
 
@@ -70,37 +70,51 @@ class Searcher:
 
     @classmethod
     async def get_next_comment(cls, comment_id: str, user_id: int, pool: Connection) -> Comment:
-        query = f"" \
-            f"SELECT cnt, comment_id, topic_id FROM (" \
-            f"    SELECT COUNT(*) AS cnt, comment_id, topic_id" \
-            f"    FROM likes " \
-            f"    GROUP BY comment_id, topic_id" \
-            f"    ORDER BY cnt DESC, " \
-            f"    comment_id DESC " \
-            f") AS ordered " \
-            f"WHERE cnt < ( " \
-            f"    SELECT COUNT(*) AS cnt2"  \
-            f"    FROM likes " \
-            f"    WHERE comment_id='{comment_id}'" \
-            f")" \
-            f"AND topic_id = (" \
-            f"    SELECT topic_id " \
-            f"    FROM likes" \
-            f"    WHERE comment_id='{comment_id}'" \
-            f"    LIMIT 1" \
-            f")" \
-            f"LIMIT 1;"
+        query = cls.__get_iterate_comment_query(comment_id=comment_id, order_type='>')
 
-        # print(f"{query=}")
         result = await pool.fetch(query)
 
         if result:
             comment_id = result[0][1]
             comment = await cls.get_comment_by_id(comment_id=comment_id, user_id=user_id, pool=pool)
-            # print(f"{result[0]=}")
-            # print(f"{result[0][1]=}")
             return comment
 
     @classmethod
     def get_prev_comment(cls, comment_id: str, user_id: int, pool: Connection) -> Comment:
         pass
+
+    @classmethod
+    def __get_iterate_comment_query(cls, comment_id: str, order_type: str) -> str:
+        if order_type not in ('>', '<'):
+            raise Exception("Wrong order_type in __get_iterate_comment_query (must by '>' or '<') ")
+        sub_query = f"" \
+                    f"SELECT ROW_NUMBER () OVER () as row_num, " \
+                    f"  MIN_id, cnt, " \
+                    f"  comment_id, topic_id " \
+                    f"  FROM ( " \
+                    f"      SELECT " \
+                    f"      MIN(id) as MIN_id, " \
+                    f"      COUNT(*) AS cnt, " \
+                    f"      comment_id, " \
+                    f"      topic_id" \
+                    f"      FROM likes " \
+                    f"      GROUP BY comment_id, topic_id " \
+                    f"      ORDER BY cnt DESC, " \
+                    f"      MIN_ID " \
+                    f") AS ordered"
+        query = f"" \
+                f"SELECT row_num, comment_id, topic_id FROM ({sub_query}" \
+                f") AS ordered " \
+                f"WHERE row_num {order_type} ( " \
+                f"  SELECT row_num FROM ({sub_query} " \
+                f"  ) AS pers_row_num" \
+                f"  WHERE comment_id = '{comment_id}'" \
+                f") " \
+                f"AND topic_id = ( " \
+                f"  SELECT topic_id " \
+                f"  FROM likes " \
+                f"  WHERE comment_id='{comment_id}' " \
+                f"  LIMIT 1 " \
+                f") " \
+                f"LIMIT 1;"
+        return query
