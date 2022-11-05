@@ -31,7 +31,7 @@ class Like:
     async def get(cls, user_id: int, comment_id: str, topic_id: str, pool: Connection):
         query = f"SELECT " \
                 f"(SELECT COUNT(*) FROM likes WHERE comment_id = " \
-                f"'{comment_id}') AS total," \
+                f"'{comment_id}' AND user_id IS NOT NULL) AS total," \
                 f"(SELECT COUNT(*) FROM likes WHERE user_id = {user_id} " \
                 f"AND comment_id = '{comment_id}' ) AS personal;"
 

@@ -15,7 +15,7 @@ class TestLikes(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(like.get_total_likes(), 10)
         self.assertEqual(mock.call(
             "SELECT (SELECT COUNT(*) FROM likes "
-            "WHERE comment_id = 'comment_id') AS total,"
+            "WHERE comment_id = 'comment_id' AND user_id IS NOT NULL) AS total,"
             "(SELECT COUNT(*) FROM likes WHERE user_id = 1 "
             "AND comment_id = 'comment_id' ) "
             "AS personal;"),
@@ -31,7 +31,7 @@ class TestLikes(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(like.get_total_likes(), 10)
         self.assertEqual(mock.call(
             "SELECT (SELECT COUNT(*) FROM likes "
-            "WHERE comment_id = 'id_comment') AS total,"
+            "WHERE comment_id = 'id_comment' AND user_id IS NOT NULL) AS total,"
             "(SELECT COUNT(*) FROM likes WHERE user_id = 2 "
             "AND comment_id = 'id_comment' ) AS personal;"),
                          pool.fetch.mock_calls[0])

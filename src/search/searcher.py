@@ -10,9 +10,17 @@ from src.search.elastic_searcher import ElasticSearcher
 class Searcher:
 
     @classmethod
-    def add_record(cls, topic: str = None, value: Value = None) -> None:
+    async def add_record(cls, topic: str, value: Value, pool: Connection) -> None:
         post = Post(topic=topic, values=[value])
-        ElasticSearcher.add_record(post=post)
+        meta_info = ElasticSearcher.add_record(post=post)
+        assert (len(meta_info) == 2)
+        assert (len(meta_info[1]) == 1)
+        query = f"" \
+            f"INSERT INTO likes " \
+            f"(comment_id, topic_id) VALUES " \
+            f"('{meta_info[0]}', '{meta_info[1][0]}')"
+
+        await pool.fetch(query)
 
     @classmethod
     def append_comment_by_topic_id(cls, topic_id: str = None, value: ValueUnsaved = None) -> None:

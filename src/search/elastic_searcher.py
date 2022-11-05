@@ -119,13 +119,18 @@ class ElasticSearcher:
     elastic_value_creators = [ElasticSentenceCreator]
 
     @classmethod
-    def add_record(cls, post: Post = None, using=client, index_topic: str = None, index_comments: str = None):
+    def add_record(cls, post: Post = None, using=client,
+                   index_topic: str = None, index_comments: str = None) -> Tuple[str, List[str]]:
         topic = Topic(title=post.get_topic())
         meta_info = topic.save(using=client, return_doc_meta=True, index=index_topic)
         id_ = meta_info['_id']
+        value_ids = []
         for value in post.get_values():
             comment = Comment(author=None, topic_id=id_, type=value.get_type(), **value.get_info())
-            comment.save(using=using, return_doc_meta=True, index=index_comments)
+            meta_info_comment = comment.save(using=using, return_doc_meta=True, index=index_comments)
+            value_ids.append(meta_info_comment['_id'])
+        return id_, value_ids
+
 
     @classmethod
     def append_comment_by_id(cls, id_: str = None, value: Value = None, using=client, index_comments: str = None):

@@ -1,6 +1,7 @@
 from aiogram import types
 from aiogram.dispatcher import Dispatcher
 from aiogram.dispatcher import FSMContext
+from asyncpg import Connection
 
 from tg_bot.config import USER_GUIDE, VIDEO_GUIDE
 from tg_bot.keyboards import get_relevant_topics_keyboard, get_comment_markup
@@ -35,7 +36,7 @@ async def show_topic(callback):
     await callback.answer(f"{topic[0:200]}", show_alert=True)
 
 
-async def show_comments_by_topic(callback, pool=None):
+async def show_comments_by_topic(callback, pool: Connection = None):
     _type, topic_id = callback.data.split('_', 1)
     user_id = callback.message.chat.id
     assert (_type == 'question')
@@ -65,11 +66,13 @@ async def self_ans_callback_handler(callback, state=FSMContext):
     await UserState.adding.set()
 
 
-async def self_answer_text_message(message: types.Message, state=FSMContext):
+async def self_answer_text_message(message: types.Message,
+                                   state=FSMContext,
+                                   pool: Connection = None):
     sentence = Sentence(sentence=message.text)
     search_values = await state.get_data()
 
-    Searcher.add_record(topic=search_values.get('search'), value=sentence)
+    await Searcher.add_record(topic=search_values.get('search'), value=sentence, pool=pool)
 
     await message.answer("Спасибо вы добавили ответ на свой вопрос.")
     await UserState.search.set()
@@ -86,7 +89,7 @@ async def search(message: types.Message, state: FSMContext):
         await message.answer("Вот что нам удалось найти", reply_markup=markup, parse_mode='Markdown')
 
 
-async def like_callback_handler(callback, state=FSMContext, pool=None):
+async def like_callback_handler(callback, state=FSMContext, pool: Connection = None):
     _type, comment_id = callback.data.split('_', 1)
     user_id = callback.message.chat.id
     comment = await Searcher.get_comment_by_id(comment_id=comment_id, user_id=user_id, pool=pool)
@@ -98,7 +101,7 @@ async def like_callback_handler(callback, state=FSMContext, pool=None):
                                      parse_mode='Markdown')
 
 
-async def favorite_callback_handler(callback, state=FSMContext, pool=None):
+async def favorite_callback_handler(callback, state=FSMContext, pool: Connection = None):
     _type, comment_id = callback.data.split('_', 1)
     user_id = callback.message.chat.id
 
@@ -111,7 +114,7 @@ async def favorite_callback_handler(callback, state=FSMContext, pool=None):
                                      parse_mode='Markdown')
 
 
-async def next_comment_callback_handler(callback, state=FSMContext, pool=None):
+async def next_comment_callback_handler(callback, state=FSMContext, pool: Connection = None):
     # print(f"next_comment_callback_handler called")
     _type, comment_id = callback.data.split('_', 1)
     user_id = callback.message.chat.id
@@ -135,6 +138,7 @@ async def default_callback_handler(callback, state=FSMContext):
 
 def register_handlers_client(dp: Dispatcher, pool):
     show_comments_by_topic_partial = partial(show_comments_by_topic, pool=pool)
+    self_answer_text_message_partial = partial(self_answer_text_message, pool=pool)
     like_callback_handler_partial = partial(like_callback_handler, pool=pool)
     favorite_callback_handler_partial = partial(favorite_callback_handler, pool=pool)
     next_comment_callback_handler_partial = partial(next_comment_callback_handler, pool=pool)
@@ -150,7 +154,7 @@ def register_handlers_client(dp: Dispatcher, pool):
                                        lambda call: call.data.startswith("question_"),
                                        state=[None, UserState.search])
 
-    dp.register_message_handler(self_answer_text_message,
+    dp.register_message_handler(self_answer_text_message_partial,
                                 lambda call: True,
                                 state=UserState.adding)
 
