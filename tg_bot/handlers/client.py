@@ -130,6 +130,22 @@ async def next_comment_callback_handler(callback, state=FSMContext, pool: Connec
                                      parse_mode='Markdown')
 
 
+async def prev_comment_callback_handler(callback, state=FSMContext, pool: Connection = None):
+    # print(f"next_comment_callback_handler called")
+    _type, comment_id = callback.data.split('_', 1)
+    user_id = callback.message.chat.id
+
+    comment = await Searcher.get_prev_comment(comment_id=comment_id, user_id=user_id, pool=pool)
+    if comment is None:
+        await callback.answer(f"Вы просмотрели все комментарии!", show_alert=True)
+        return
+
+    markup = get_comment_markup(comment)
+    await callback.message.edit_text(text=callback.message.text,
+                                     reply_markup=markup,
+                                     parse_mode='Markdown')
+
+
 async def additional_answer_handler(callback, state=FSMContext):
     await bot.send_message(callback.message.chat.id, f"Введи свой комментарий ответ (это может быть текст)")
     await UserState.additional_ans.set()
@@ -165,6 +181,7 @@ def register_handlers_client(dp: Dispatcher, pool):
     like_callback_handler_partial = partial(like_callback_handler, pool=pool)
     favorite_callback_handler_partial = partial(favorite_callback_handler, pool=pool)
     next_comment_callback_handler_partial = partial(next_comment_callback_handler, pool=pool)
+    prev_comment_callback_handler_partial = partial(prev_comment_callback_handler, pool=pool)
     additional_answer_text_message_partial = partial(additional_answer_text_message, pool=pool)
 
     dp.register_message_handler(send_welcome,
@@ -199,13 +216,17 @@ def register_handlers_client(dp: Dispatcher, pool):
                                        lambda call: call.data.startswith('next_'),
                                        state=[None, UserState.search])
 
+    dp.register_callback_query_handler(prev_comment_callback_handler_partial,
+                                       lambda call: call.data.startswith('prev_'),
+                                       state=[None, UserState.search])
+
     dp.register_callback_query_handler(additional_answer_handler,
                                        lambda call: call.data.startswith('add_'),
                                        state=[None, UserState.search])
 
     dp.register_message_handler(additional_answer_text_message_partial,
-                                       lambda call: True,
-                                       state=UserState.additional_ans)
+                                lambda call: True,
+                                state=UserState.additional_ans)
 
     dp.register_callback_query_handler(default_callback_handler,
                                        lambda call: True,

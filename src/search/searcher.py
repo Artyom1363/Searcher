@@ -70,7 +70,7 @@ class Searcher:
 
     @classmethod
     async def get_next_comment(cls, comment_id: str, user_id: int, pool: Connection) -> Comment:
-        query = cls.__get_iterate_comment_query(comment_id=comment_id, order_type='>')
+        query = cls.__get_iterate_comment_query(comment_id=comment_id, order_sign='>')
 
         result = await pool.fetch(query)
 
@@ -80,13 +80,24 @@ class Searcher:
             return comment
 
     @classmethod
-    def get_prev_comment(cls, comment_id: str, user_id: int, pool: Connection) -> Comment:
-        pass
+    async def get_prev_comment(cls, comment_id: str, user_id: int, pool: Connection) -> Comment:
+        query = cls.__get_iterate_comment_query(comment_id=comment_id, order_sign='<')
+
+        result = await pool.fetch(query)
+
+        if result:
+            comment_id = result[0][1]
+            comment = await cls.get_comment_by_id(comment_id=comment_id, user_id=user_id, pool=pool)
+            return comment
 
     @classmethod
-    def __get_iterate_comment_query(cls, comment_id: str, order_type: str) -> str:
-        if order_type not in ('>', '<'):
+    def __get_iterate_comment_query(cls, comment_id: str, order_sign: str) -> str:
+        if order_sign not in ('>', '<'):
             raise Exception("Wrong order_type in __get_iterate_comment_query (must by '>' or '<') ")
+        if order_sign == '>':
+            order_type = 'ASC'
+        else:
+            order_type = 'DESC'
         sub_query = f"" \
                     f"SELECT ROW_NUMBER () OVER () as row_num, " \
                     f"  MIN_id, cnt, " \
@@ -105,7 +116,7 @@ class Searcher:
         query = f"" \
                 f"SELECT row_num, comment_id, topic_id FROM ({sub_query}" \
                 f") AS ordered " \
-                f"WHERE row_num {order_type} ( " \
+                f"WHERE row_num {order_sign} ( " \
                 f"  SELECT row_num FROM ({sub_query} " \
                 f"  ) AS pers_row_num" \
                 f"  WHERE comment_id = '{comment_id}'" \
@@ -116,5 +127,6 @@ class Searcher:
                 f"  WHERE comment_id='{comment_id}' " \
                 f"  LIMIT 1 " \
                 f") " \
+                f"ORDER BY row_num {order_type} " \
                 f"LIMIT 1;"
         return query
