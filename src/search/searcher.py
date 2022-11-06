@@ -39,22 +39,6 @@ class Searcher:
         return ElasticSearcher.get_relevant_topics(message=message)
 
     @classmethod
-    async def get_comments_by_topic_id(cls, topic_id: str,
-                                       user_id: int,
-                                       pool: Connection,
-                                       limit: int = None) -> List[Comment]:
-        comments = []
-        values = ElasticSearcher.get_comments_by_topic_id(id_=topic_id)
-        for value in values:
-            like = await Like.get(user_id=user_id,
-                                  comment_id=value.get_id(),
-                                  topic_id=value.get_topic_id(),
-                                  pool=pool)
-            favorite = await Favorite.get(user_id=user_id, comment_id=value.get_id(), pool=pool)
-            comments.append(Comment(value, like, favorite))
-        return sorted(comments)[0:limit]
-
-    @classmethod
     async def get_best_comment_by_topic_id(cls, topic_id: str,
                                            user_id: int,
                                            pool: Connection) -> Comment:
