@@ -55,6 +55,31 @@ class Searcher:
         return sorted(comments)[0:limit]
 
     @classmethod
+    async def get_best_comment_by_topic_id(cls, topic_id: str,
+                                           user_id: int,
+                                           pool: Connection) -> Comment:
+        query = f"" \
+            f"SELECT comment_id FROM ( " \
+            f"  SELECT  " \
+            f"    MIN(id) as MIN_id, " \
+            f"      COUNT(*) AS cnt, " \
+            f"      comment_id, " \
+            f"      topic_id " \
+            f"  FROM likes " \
+            f"  WHERE topic_id = '{topic_id}' " \
+            f"  GROUP BY comment_id, topic_id " \
+            f"  ORDER BY cnt DESC, MIN_ID " \
+            f"  LIMIT 1 " \
+            f") AS best;"
+
+        result = await pool.fetch(query)
+
+        if result:
+            comment_id = result[0][0]
+            comment = await cls.get_comment_by_id(comment_id=comment_id, user_id=user_id, pool=pool)
+            return comment
+
+    @classmethod
     def get_topic_by_id(cls, topic_id: str) -> str:
         return ElasticSearcher.get_topic_by_id(id_=topic_id)
 

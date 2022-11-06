@@ -42,17 +42,17 @@ async def show_comments_by_topic(callback, pool: Connection = None):
     assert (_type == 'question')
 
     topic = Searcher.get_topic_by_id(topic_id)
-    comments = await Searcher.get_comments_by_topic_id(topic_id, user_id, pool, limit=1)
+    comment = await Searcher.get_best_comment_by_topic_id(topic_id, user_id, pool)
     # #TODO DELETE
     # await Searcher.get_next_comment('NymVeIIBsfiF7pzVvSTM', user_id=user_id, pool=pool)
     # print(f"{topic_id=}")
     # print(f"{comments[0].get_topic_id()=}")
     # #
-    if len(comments) == 0:
+    if comment is None:
         await callback.answer(f"По данной теме все комментарии удалены", show_alert=True)
         return
 
-    markup = get_comment_markup(comment=comments[0])
+    markup = get_comment_markup(comment=comment)
     await bot.send_message(user_id,
                            text=f'Сейчас вы видите комментарии пользователей на вопрос: *{topic}*',
                            reply_markup=markup,
