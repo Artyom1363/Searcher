@@ -10,7 +10,9 @@ from src.search.elastic_searcher import ElasticSearcher
 class Searcher:
 
     @classmethod
-    async def add_record(cls, topic: str, value: Value, pool: Connection) -> None:
+    async def add_record(cls, topic: str,
+                         value: Value,
+                         pool: Connection) -> None:
         post = Post(topic=topic, values=[value])
         meta_info = ElasticSearcher.add_record(post=post)
         assert (len(meta_info) == 2)
@@ -23,9 +25,12 @@ class Searcher:
         await pool.fetch(query)
 
     @classmethod
-    async def append_comment_by_topic_id(cls, topic_id: str, value: ValueUnsaved,
-                                         user_id: int, pool: Connection) -> None:
-        comment_id = ElasticSearcher.append_comment_by_id(id_=topic_id, value=value)
+    async def append_comment_by_topic_id(cls, topic_id: str,
+                                         value: ValueUnsaved,
+                                         user_id: int,
+                                         pool: Connection) -> None:
+        comment_id = ElasticSearcher.append_comment_by_id(id_=topic_id,
+                                                          value=value)
         # print(f"{comment_id=} in append_comment_by_topic_id")
         query = f"" \
                 f"INSERT INTO likes " \
@@ -60,7 +65,8 @@ class Searcher:
 
         if result:
             comment_id = result[0][0]
-            comment = await cls.get_comment_by_id(comment_id=comment_id, user_id=user_id, pool=pool)
+            comment = await cls.get_comment_by_id(comment_id=comment_id,
+                                                  user_id=user_id, pool=pool)
             return comment
 
     @classmethod
@@ -68,41 +74,56 @@ class Searcher:
         return ElasticSearcher.get_topic_by_id(id_=topic_id)
 
     @classmethod
-    async def get_comment_by_id(cls, comment_id: str, user_id: int, pool: Connection) -> Comment:
+    async def get_comment_by_id(cls, comment_id: str,
+                                user_id: int,
+                                pool: Connection) -> Comment:
         value = ElasticSearcher.get_comment_by_id(id_=comment_id)
         like = await Like.get(user_id=user_id,
                               comment_id=value.get_id(),
                               topic_id=value.get_topic_id(),
                               pool=pool)
-        favorite = await Favorite.get(user_id=user_id, comment_id=value.get_id(), pool=pool)
+        favorite = await Favorite.get(user_id=user_id,
+                                      comment_id=value.get_id(),
+                                      pool=pool)
         return Comment(value, like, favorite)
 
     @classmethod
-    async def get_next_comment(cls, comment_id: str, user_id: int, pool: Connection) -> Comment:
-        query = cls.__get_iterate_comment_query(comment_id=comment_id, order_sign='>')
+    async def get_next_comment(cls, comment_id: str,
+                               user_id: int,
+                               pool: Connection) -> Comment:
+        query = cls.__get_iterate_comment_query(comment_id=comment_id,
+                                                order_sign='>')
 
         result = await pool.fetch(query)
 
         if result:
             comment_id = result[0][1]
-            comment = await cls.get_comment_by_id(comment_id=comment_id, user_id=user_id, pool=pool)
+            comment = await cls.get_comment_by_id(comment_id=comment_id,
+                                                  user_id=user_id, pool=pool)
             return comment
 
     @classmethod
-    async def get_prev_comment(cls, comment_id: str, user_id: int, pool: Connection) -> Comment:
-        query = cls.__get_iterate_comment_query(comment_id=comment_id, order_sign='<')
+    async def get_prev_comment(cls, comment_id: str,
+                               user_id: int,
+                               pool: Connection) -> Comment:
+        query = cls.__get_iterate_comment_query(comment_id=comment_id,
+                                                order_sign='<')
 
         result = await pool.fetch(query)
 
         if result:
             comment_id = result[0][1]
-            comment = await cls.get_comment_by_id(comment_id=comment_id, user_id=user_id, pool=pool)
+            comment = await cls.get_comment_by_id(comment_id=comment_id,
+                                                  user_id=user_id,
+                                                  pool=pool)
             return comment
 
     @classmethod
-    def __get_iterate_comment_query(cls, comment_id: str, order_sign: str) -> str:
+    def __get_iterate_comment_query(cls, comment_id: str,
+                                    order_sign: str) -> str:
         if order_sign not in ('>', '<'):
-            raise Exception("Wrong order_type in __get_iterate_comment_query (must by '>' or '<') ")
+            raise Exception("Wrong order_type in __get_iterate_comment_query "
+                            "(must by '>' or '<') ")
         if order_sign == '>':
             order_type = 'ASC'
         else:

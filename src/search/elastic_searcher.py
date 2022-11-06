@@ -38,7 +38,8 @@ class ElasticValueCreator:
         return dict_
 
     @classmethod
-    def dict_from_elastic_hit(cls, hit: elasticsearch_dsl.response.hit.Hit) -> dict:
+    def dict_from_elastic_hit(cls, hit: elasticsearch_dsl.response.hit.Hit
+                              ) -> dict:
         assert (isinstance(hit, elasticsearch_dsl.response.hit.Hit))
         dict_ = {}
         for key in dir(hit):
@@ -73,7 +74,8 @@ class ElasticSentenceCreator(ElasticValueCreator):
     @classmethod
     def create_from_elastic_hit(cls, elastic_hit) -> Sentence:
         elastic_obj_dict = cls.dict_from_elastic_hit(elastic_hit)
-        kwargs = dict(filter(lambda x: x[1] != "meta", elastic_obj_dict.items()))
+        kwargs = dict(filter(lambda x: x[1] != "meta",
+                             elastic_obj_dict.items()))
         kwargs['_id'] = elastic_obj_dict["meta"]["id"]
         kwargs['_type'] = kwargs.pop('type')
         return Sentence(**kwargs)
@@ -120,22 +122,29 @@ class ElasticSearcher:
 
     @classmethod
     def add_record(cls, post: Post = None, using=client,
-                   index_topic: str = None, index_comments: str = None) -> Tuple[str, List[str]]:
+                   index_topic: str = None,
+                   index_comments: str = None
+                   ) -> Tuple[str, List[str]]:
         topic = Topic(title=post.get_topic())
-        meta_info = topic.save(using=client, return_doc_meta=True, index=index_topic)
+        meta_info = topic.save(using=client, return_doc_meta=True,
+                               index=index_topic)
         id_ = meta_info['_id']
         value_ids = []
         for value in post.get_values():
-            comment = Comment(author=None, topic_id=id_, type=value.get_type(), **value.get_info())
-            meta_info_comment = comment.save(using=using, return_doc_meta=True, index=index_comments)
+            comment = Comment(author=None, topic_id=id_, type=value.get_type(),
+                              **value.get_info())
+            meta_info_comment = comment.save(using=using, return_doc_meta=True,
+                                             index=index_comments)
             value_ids.append(meta_info_comment['_id'])
         return id_, value_ids
 
     @classmethod
     def append_comment_by_id(cls, id_: str, value: ValueUnsaved,
                              using=client, index_comments: str = None) -> str:
-        comment = Comment(author=None, topic_id=id_, type=value.get_type(), **value.get_info())
-        meta_info = comment.save(using=using, return_doc_meta=True, index=index_comments)
+        comment = Comment(author=None, topic_id=id_, type=value.get_type(),
+                          **value.get_info())
+        meta_info = comment.save(using=using, return_doc_meta=True,
+                                 index=index_comments)
         return meta_info['_id']
 
     @classmethod
@@ -144,7 +153,8 @@ class ElasticSearcher:
                             using=client,
                             index_topics: str = "topics",
                             limit: int = 3) -> List[Tuple[str, str]]:
-        response = Search(index=index_topics, using=using).query("match", title=message).execute()
+        response = Search(index=index_topics,
+                          using=using).query("match", title=message).execute()
         topics = []
         hits_counter = 0
         for hit in response:
@@ -160,7 +170,8 @@ class ElasticSearcher:
                                  using=client,
                                  index_comments: str = "comments",
                                  limit: int = 3) -> List[Value]:
-        response = Search(index=index_comments, using=using).query("match", topic_id=id_).execute()
+        response = Search(index=index_comments,
+                          using=using).query("match", topic_id=id_).execute()
         comments = []
         hits_counter = 0
         for hit in response:
