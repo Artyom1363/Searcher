@@ -43,7 +43,7 @@ async def send_welcome(message: types.Message):
 async def show_statistics(message: types.Message, pool: Connection):
     user_id = message.chat.id
     stat = await Stat.get(user_id, pool)
-    await message.answer(text=f"Вам поставили лайков ❤️: {stat.likes}\n" 
+    await message.answer(text=f"Вам поставили лайков ❤️: {stat.likes}\n"
                          f"Вы добавили в избранное ✅: {stat.favorites}\n"
                          f"Вы создали ответов 📥: {stat.comments}")
 
@@ -123,6 +123,17 @@ async def search(message: types.Message, state: FSMContext):
         await message.answer("Вот что нам удалось найти",
                              reply_markup=markup,
                              parse_mode='Markdown')
+
+
+async def show_comment_data_handler(callback, state=FSMContext,
+                                    pool: Connection = None):
+    _type, comment_id = callback.data.split('_', 1)
+    user_id = callback.message.chat.id
+    comment = await Searcher.get_comment_by_id(comment_id=comment_id,
+                                               user_id=user_id,
+                                               pool=pool)
+    await bot.send_message(user_id,
+                           comment.get_value().get_sentence())
 
 
 async def like_callback_handler(callback, state=FSMContext,
@@ -232,6 +243,9 @@ def register_handlers_client(dp: Dispatcher, pool):
     self_answer_text_message_partial = partial(
         self_answer_text_message, pool=pool
     )
+    show_comment_data_handler_partial = partial(
+        show_comment_data_handler, pool=pool
+    )
     like_callback_handler_partial = partial(
         like_callback_handler, pool=pool
     )
@@ -284,6 +298,12 @@ def register_handlers_client(dp: Dispatcher, pool):
     dp.register_callback_query_handler(
         self_ans_callback_handler,
         lambda call: call.data == 'selfAns',
+        state=[None, UserState.search]
+    )
+
+    dp.register_callback_query_handler(
+        show_comment_data_handler_partial,
+        lambda call: call.data.startswith('comment_'),
         state=[None, UserState.search]
     )
 
