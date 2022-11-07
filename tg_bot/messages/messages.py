@@ -16,5 +16,4 @@ ENTERED_ANSWER = "Спасибо вы добавили ответ на свой 
 
 VIEWED_ALL_COMMENTS = "Вы просмотрели все комментарии!"
 
-WARNING_MESSAGE = "Пока что не существует обработчика, " \
-                  "search_value={search_values}"
+WARNING_MESSAGE = "Пока что не существует обработчика "

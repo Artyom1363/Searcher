@@ -9,6 +9,8 @@ from src.search import Searcher
 
 from src.data_types import Sentence
 
+from src.stats import Stat
+
 from tg_bot.config import USER_GUIDE, VIDEO_GUIDE
 from tg_bot.keyboards import get_relevant_topics_keyboard, get_comment_markup
 from tg_bot.create_bot import bot
@@ -36,6 +38,27 @@ async def send_welcome(message: types.Message):
     await bot.send_video(message.chat.id, VIDEO_GUIDE)
     await bot.send_message(message.chat.id, text='Введите запрос:')
     await UserState.search.set()
+
+
+async def show_statistics(message: types.Message, pool: Connection):
+    user_id = message.chat.id
+    stat = await Stat.get(user_id, pool)
+    await message.answer(text=f"Вам поставили лайков ❤️: {stat.likes}\n" 
+                         f"Вы добавили в избранное ✅: {stat.favorites}\n"
+                         f"Вы создали ответов 📥: {stat.comments}")
+
+
+async def show_favorites_comments(message: types.Message, pool: Connection):
+    user_id = message.chat.id
+    comments = await Stat.get_favorites_comments(user_id, pool=pool)
+    for ind in range(min([10, len(comments)])):
+        markup = get_comment_markup(comments[ind])
+        topic_id = comments[ind].get_topic_id()
+        topic = Searcher.get_topic_by_id(topic_id)
+        await bot.send_message(user_id,
+                               text=SHOWING_COMMENTS.format(topic=topic),
+                               reply_markup=markup,
+                               parse_mode='Markdown')
 
 
 async def show_topic(callback):
@@ -194,14 +217,17 @@ async def additional_answer_text_message(message: types.Message,
 
 
 async def default_callback_handler(callback, state=FSMContext):
-    search_values = await state.get_data()
-    await callback.answer(WARNING_MESSAGE.format(search_values),
+    # search_values = await state.get_data()
+    await callback.answer(WARNING_MESSAGE,
                           show_alert=True)
 
 
 def register_handlers_client(dp: Dispatcher, pool):
     show_comments_by_topic_partial = partial(
         show_comments_by_topic, pool=pool
+    )
+    show_statistics_partial = partial(
+        show_statistics, pool=pool
     )
     self_answer_text_message_partial = partial(
         self_answer_text_message, pool=pool
@@ -221,9 +247,20 @@ def register_handlers_client(dp: Dispatcher, pool):
     additional_answer_text_message_partial = partial(
         additional_answer_text_message, pool=pool
     )
+    show_favorites_comments_partial = partial(
+        show_favorites_comments, pool=pool
+    )
 
     dp.register_message_handler(send_welcome,
                                 commands=['start', 'help'],
+                                state=[None, UserState.search])
+
+    dp.register_message_handler(show_statistics_partial,
+                                commands=['stat'],
+                                state=[None, UserState.search])
+
+    dp.register_message_handler(show_favorites_comments_partial,
+                                commands=['fav'],
                                 state=[None, UserState.search])
 
     dp.register_callback_query_handler(
