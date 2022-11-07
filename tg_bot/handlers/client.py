@@ -80,9 +80,10 @@ async def self_answer_text_message(message: types.Message,
                                    pool: Connection = None):
     sentence = Sentence(sentence=message.text)
     search_values = await state.get_data()
+    user_id = message.chat.id
 
     await Searcher.add_record(topic=search_values.get('search'),
-                              value=sentence, pool=pool)
+                              value=sentence, user_id=user_id, pool=pool)
 
     await message.answer(ENTERED_ANSWER)
     await UserState.search.set()
