@@ -1,0 +1,22 @@
+version: "3.5"
+
+services:
+
+  db:
+    image: postgres:14.3-alpine
+    restart: always
+    container_name: tgbot_postgress
+    environment:
+      POSTGRES_DB: "db0"
+      POSTGRES_USER: "root"
+      POSTGRES_PASSWORD: "root"
+    # volumes:
+      # - /Users/artem/Documents/BMSTU/trps/Searcher/databases/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
